@@ -13,4 +13,4 @@ end
 
 gem 'jquery-rails'
 
-gem 'git'
+gem 'octokit'
