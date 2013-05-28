@@ -1,5 +1,4 @@
 Churnhub::Application.routes.draw do
-
-  resources :repository
+  resources :repositories
 
 end
