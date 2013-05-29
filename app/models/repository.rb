@@ -15,6 +15,10 @@ class Repository < ActiveRecord::Base
     end
 
     response = g.repos.commits.compare *uri.path.match(%r{/([^/]+)/([^\./]+)}).captures, "HEAD~1000", "HEAD"
+  rescue
+    last = g.repos.commits.all.to_a.last
+    response = g.repos.commits.compare *uri.path.match(%r{/([^/]+)/([^\./]+)}).captures, last.sha, "HEAD"
+  ensure
     self.files = response.files
   end
 end
