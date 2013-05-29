@@ -14,5 +14,4 @@ end
 
 gem 'jquery-rails'
 
-gem 'octokit'
 gem 'github_api'
