@@ -1,6 +1,7 @@
 Churnhub::Application.routes.draw do
-  resources :repositories
-  get "/repo/*url" => "repositories#repo", as: :repo
+  resources :repositories, except: [:show]
+
+  get "/repo/*url" => "repositories#show", as: :repo
 
   root to: "repositories#index"
 end

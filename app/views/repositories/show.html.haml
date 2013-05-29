@@ -1,9 +1,11 @@
 %h1= @repository.url
 %table
   %tr
-    %td Changes
+    %td Additions
+    %td Deletions
     %td File
-  - @repository.files.sort_by(&:changes).reverse.each do |file|
+  - @repository.files.sort_by {|f| - (f.second + f.third) }.each do |file|
     %tr
-      %td{class: 'changes'}= file.changes
-      %td{class: 'filename'}= file.filename
+      %td{class: 'changes'}= file.second
+      %td{class: 'changes'}= file.third
+      %td{class: 'filename'}= file.first

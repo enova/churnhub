@@ -1,22 +1,15 @@
 class RepositoriesController < ApplicationController
+  respond_to :json, :html
   def index
     @repository = Repository.new
   end
 
   def create
-    if @repository = Repository.where(params[:repository]).first_or_create
-      redirect_to repo_path(@repository.url)
-    else
-      render :edit
-    end
+    redirect_to repo_path(Repository.clean_url(params[:repository][:url]))
   end
 
   def show
-    @repository = Repository.find params[:id]
-  end
-
-  def repo
-    @repository = Repository.find_by_url params[:url]
-    render 'show'
+    @repository = Repository.find_or_create_by_url Repository.clean_url(params[:url])
+    respond_with @repository
   end
 end
