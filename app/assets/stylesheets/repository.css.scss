@@ -7,4 +7,7 @@ body {
   padding-top: 2em;
 }
 
-h1, form { text-align: center }
+h1, form { text-align: center; }
+table { margin: 0 auto; }
+td.changes { text-align: right; }
+td { padding: 0 5px; }

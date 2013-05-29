@@ -1,3 +1,9 @@
 %h1= @repository.url
-- @repository.files.sort_by(&:changes).reverse.each do |file|
-  %pre= ".%10i %s" % [file.changes, file.filename]
+%table
+  %tr
+    %td Changes
+    %td File
+  - @repository.files.sort_by(&:changes).reverse.each do |file|
+    %tr
+      %td{class: 'changes'}= file.changes
+      %td{class: 'filename'}= file.filename
