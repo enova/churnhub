@@ -1,21 +1,22 @@
 class Repository < ActiveRecord::Base
-  attr_accessible :url, :files
-  serialize :files
+  attr_accessible :url
 
-  before_save :fetch_diff_from_github
+  after_save :fetch_diff_from_github
 
   validates :url, presence: true, uniqueness: true
 
-  def fetch_diff_from_github
-    response = github.commits.compare(github.user, github.repo, last_sha, "HEAD")
+  has_many :commits, dependent: :destroy
 
-    self.files = response.files.map do |file|
-      file.values_at *%w[filename additions deletions]
+  def fetch_diff_from_github
+    github.commits.all.each do |c|
+      commits.create sha: c.sha,
+                   files: get_file_stats(c.sha),
+               timestamp: c.commit.author.date
     end
   end
 
-  def last_sha
-    @last_sha ||= github.commits.all.to_a.last.sha
+  def get_file_stats sha
+    github.commits.find(github.user, github.repo, sha).files.map{|f| [f.filename, f.additions, f.deletions]}
   end
 
   def github
