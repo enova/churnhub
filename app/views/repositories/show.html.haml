@@ -1,3 +1,3 @@
 %h1= @repository.url
 - @repository.files.sort_by(&:changes).reverse.each do |file|
-  %pre= ".%10i %10i %10i %s" % [file.changes, file.additions, file.deletions, file.filename]
+  %pre= ".%10i %s" % [file.changes, file.filename]

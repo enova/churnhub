@@ -4,9 +4,8 @@ class RepositoriesController < ApplicationController
   end
 
   def create
-    @repository = Repository.new params[:repository]
-    if @repository.save
-      redirect_to @repository
+    if @repository = Repository.where(params[:repository]).first_or_create
+      redirect_to repo_path(@repository.url)
     else
       render :edit
     end
@@ -14,6 +13,10 @@ class RepositoriesController < ApplicationController
 
   def show
     @repository = Repository.find params[:id]
-    @repository.fetch_from_github!
+  end
+
+  def repo
+    @repository = Repository.find_by_url params[:url]
+    render 'show'
   end
 end

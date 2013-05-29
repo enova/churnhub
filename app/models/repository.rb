@@ -1,24 +1,36 @@
 class Repository < ActiveRecord::Base
-  attr_accessor :files
-  attr_accessible :url
+  attr_accessible :url, :files
 
-  validates :url, presence: true
+  serialize :files
 
-  def fetch_from_github!
-    uri = URI(self.url)
-    g = Github.new do |config|
-        if uri.host != "github.com"
-          config.endpoint    = 'https://#{uri.host}/api/v3'
-          config.site        = 'https://#{uri.host}'
-        end
-#       config.oauth_token = ''
-    end
+  before_save :format_url, :fetch_diff_from_github
 
-    response = g.repos.commits.compare *uri.path.match(%r{/([^/]+)/([^\./]+)}).captures, "HEAD~1000", "HEAD"
-  rescue
-    last = g.repos.commits.all.to_a.last
-    response = g.repos.commits.compare *uri.path.match(%r{/([^/]+)/([^\./]+)}).captures, last.sha, "HEAD"
-  ensure
+  validates :url, presence: true, uniqueness: true
+
+  def fetch_diff_from_github
+    response = github.commits.compare github.user, github.repo, last_sha, "HEAD"
     self.files = response.files
+  end
+
+  def last_sha
+    @last_sha ||= github.commits.all.to_a.last.sha
+  end
+
+  def github
+    @github ||= Github::Repos.new do |config|
+        host, config.user, config.repo = parsed_url
+        if host != "github.com"
+          config.endpoint = "https://#{host}/api/v3"
+          config.site     = "https://#{host}"
+        end
+    end
+  end
+
+  def parsed_url
+    @parsed_url ||= /(?<=:\/\/|@|^)([^\/]+)(?:\/|:)([^\/]+)\/([^\/\.]+)/i.match(url).captures
+  end
+
+  def format_url
+    self.url = parsed_url.join("/")
   end
 end
