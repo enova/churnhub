@@ -11,4 +11,9 @@ class RepositoriesController < ApplicationController
       render :edit
     end
   end
+
+  def show
+    @repository = Repository.find params[:id]
+    @repository.fetch_from_github!
+  end
 end
