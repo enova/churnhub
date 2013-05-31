@@ -6,16 +6,16 @@ class Repository < ActiveRecord::Base
 
   validates :url, presence: true, uniqueness: true
 
-  def fetch_diff_from_github
-    response = github.commits.compare(github.user, github.repo, last_sha, "HEAD")
-
-    self.files = response.files.map do |file|
-      file.values_at *%w[filename additions deletions]
-    end
+  def self.with_url _url
+    where(url: clean_url(_url)).first_or_create
   end
 
-  def last_sha
-    @last_sha ||= github.commits.all.to_a.last.sha
+  def fetch_diff_from_github
+    latest_commit = github.commits.get sha: "HEAD"
+
+    self.files = latest_commit.files.map do |file|
+      file.values_at :filename, :additions, :deletions
+    end
   end
 
   def github
@@ -33,6 +33,6 @@ class Repository < ActiveRecord::Base
   end
 
   def self.clean_url _url
-    _url[/(?<=\/\/|@|^)([^\/\n]+\/[^\/\n]+\/[^\.\/\n]+)/]
+    _url.sub(/^[^\/]*(?:\/\/|@)/,'').sub(/\.git/,'')
   end
 end

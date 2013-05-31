@@ -5,11 +5,12 @@ class RepositoriesController < ApplicationController
   end
 
   def create
-    redirect_to repo_path(Repository.clean_url(params[:repository][:url]))
+    @repository = Repository.with_url(params[:url])
+    redirect_to @repository
   end
 
   def show
-    @repository = Repository.find_or_create_by_url Repository.clean_url(params[:url])
+    @repository = Repository.with_url(params[:url])
     respond_with @repository
   end
 end
