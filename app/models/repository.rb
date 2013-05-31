@@ -7,6 +7,22 @@ class Repository < ActiveRecord::Base
 
   has_many :commits, dependent: :destroy
 
+  def as_json options={}
+    options.reverse_merge! include: :commits
+    super options
+  end
+
+  def aggregate_all_file_changes
+    changes = commits.inject(Hash.new{[0,0]}) do |ch, co|
+      co.files.each do |f,a,d|
+        ch[f] = ch[f].zip([a,d]).map{ |x,y| x + y }
+      end
+      ch
+    end
+    changes.sort_by { |f,chs| -(chs.first + chs.second) }
+           .map { |f,chs| [f, chs.first, chs.second] }
+  end
+
   def fetch_diff_from_github
     github.commits.all.each do |c|
       commits.create sha: c.sha,

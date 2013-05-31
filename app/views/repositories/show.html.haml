@@ -1,15 +1,11 @@
 %h1= @repository.url
 %table
-  %th
+  %tr
     %td Additions
     %td Deletions
-    %td File
-    - total_counts = @repository.commits.inject(Hash.new{[0,0]}) do |total_counts, commit|
-      - commit.files.each do |file,adds,dels|
-        - total_counts[file] = total_counts[file].zip([adds,dels]).map{|a,b|a+b}
-        - total_counts
-    - total_counts.each do |file,adds,dels|
-      %tr
-        %td{class: "changes"}= adds
-        %td{class: "changes"}= dels
-        %td= file
+    %td Filename
+  - @repository.aggregate_all_file_changes.each do |file|
+    %tr
+      %td{class: "changes"}= file.second
+      %td{class: "changes"}= file.third
+      %td= file.first
