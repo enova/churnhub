@@ -11,13 +11,21 @@
 #
 # It's strongly recommended to check this file into your version control system.
 
-ActiveRecord::Schema.define(:version => 20130529154326) do
+ActiveRecord::Schema.define(:version => 20130530200755) do
+
+  create_table "commits", :force => true do |t|
+    t.integer  "repository_id"
+    t.string   "sha"
+    t.text     "files"
+    t.datetime "timestamp"
+    t.datetime "created_at",    :null => false
+    t.datetime "updated_at",    :null => false
+  end
 
   create_table "repositories", :force => true do |t|
     t.string   "url"
     t.datetime "created_at", :null => false
     t.datetime "updated_at", :null => false
-    t.text     "files"
   end
 
   add_index "repositories", ["url"], :name => "index_repositories_on_url"

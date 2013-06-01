@@ -1,0 +1,13 @@
+# Read about fixtures at http://api.rubyonrails.org/classes/ActiveRecord/Fixtures.html
+
+one:
+  repo_id: 1
+  sha: MyString
+  files: MyText
+  timestamp: 2013-05-29 13:32:27
+
+two:
+  repo_id: 1
+  sha: MyString
+  files: MyText
+  timestamp: 2013-05-29 13:32:27

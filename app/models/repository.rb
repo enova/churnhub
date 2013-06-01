@@ -1,20 +1,17 @@
 class Repository < ActiveRecord::Base
-  attr_accessible :url, :files
-  serialize :files
+  after_save      :fetch_commits_from_github
+  attr_accessible :url
+  has_many        :commits, dependent: :destroy
+  validates       :url, presence: true, uniqueness: true
 
-  before_save :fetch_diff_from_github
-
-  validates :url, presence: true, uniqueness: true
-
-  def self.with_url _url
-    where(url: clean_url(_url)).first_or_create
+  def as_json options = {}
+    options.reverse_merge! include: :commits
+    super options
   end
 
-  def fetch_diff_from_github
-    latest_commit = github.commits.get sha: "HEAD"
-
-    self.files = latest_commit.files.map do |file|
-      file.values_at :filename, :additions, :deletions
+  def fetch_commits_from_github
+    github.commits.all.each do |c|
+      commits.create sha: c.sha, timestamp: c.commit.author.date
     end
   end
 
@@ -30,6 +27,10 @@ class Repository < ActiveRecord::Base
 
   def url= _url
     self[:url] = Repository.clean_url(_url)
+  end
+
+  def self.with_url _url
+    where(url: clean_url(_url)).first_or_create
   end
 
   def self.clean_url _url

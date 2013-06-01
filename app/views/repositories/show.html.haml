@@ -1,11 +1,4 @@
 %h1= @repository.url
-%table
-  %tr
-    %td Additions
-    %td Deletions
-    %td File
-  - @repository.files.sort_by {|f| - (f.second + f.third) }.each do |file|
-    %tr
-      %td{class: 'changes'}= file.second
-      %td{class: 'changes'}= file.third
-      %td{class: 'filename'}= file.first
+%ul
+  - @repository.commits.each do |commit|
+    %li= commit.sha
