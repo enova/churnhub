@@ -1,8 +1,9 @@
 class Repository < ActiveRecord::Base
   after_save      :fetch_commits_from_github
-  attr_accessible :url
   has_many        :commits, dependent: :destroy
   validates       :url, presence: true, uniqueness: true
+  attr_accessible :url
+  attr_reader :path
 
   def as_json options = {}
     options.reverse_merge! include: :commits
@@ -10,19 +11,33 @@ class Repository < ActiveRecord::Base
   end
 
   def fetch_commits_from_github
-    github.commits.all.each do |c|
-      commits.create sha: c.sha, timestamp: c.commit.author.date
+    github.commits(path).each do |commit|
+      commits.create sha: commit.sha,
+               timestamp: commit.commit.author.date
     end
   end
 
   def github
-    @github ||= Github::Repos.new do |config|
-      host, config.user, config.repo = url.split('/')
-      if host != "github.com"
-        config.endpoint = "https://#{host}/api/v3"
-        config.site     = "https://#{host}"
-      end
+    return @github if @github
+
+    @github = Octokit::Client.new
+    
+    if host != 'github.com'
+      @github.api_endpoint = "https://#{host}/api/v3"
+      @github.web_endpoint = "https://#{host}/"
     end
+
+    @github
+  end
+
+  def host
+    @host || (@host, @path = url.split '/', 2)
+    @host
+  end
+
+  def path
+    @path || (@host, @path = url.split '/', 2)
+    @path
   end
 
   def url= _url

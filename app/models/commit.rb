@@ -6,6 +6,8 @@ class Commit < ActiveRecord::Base
   before_save :request_files
 
   def request_files
-    self.files = repository.github.commits.find(sha: sha).files.map{|f| [f.filename, f.additions, f.deletions] }
+    self.files = repository.github.commit(repository.path, sha).files.map do |f|
+      [f.filename, f.additions, f.deletions]
+    end
   end
 end

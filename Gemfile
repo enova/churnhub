@@ -1,6 +1,6 @@
 source 'https://rubygems.org'
 
-gem 'github_api'
+gem 'octokit'
 gem 'jquery-rails'
 gem 'rails', '3.2.13'
 gem 'sqlite3'
