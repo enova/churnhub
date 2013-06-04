@@ -6,7 +6,7 @@ class RepositoriesController < ApplicationController
 
   def create
     @repository = Repository.with_url(params[:repository][:url])
-    redirect_to repo_path(@repository.url)
+    redirect_to commits_path(@repository.url)
   end
 
   def show
