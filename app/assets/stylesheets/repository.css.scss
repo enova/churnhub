@@ -7,6 +7,8 @@ body {
   padding-top: 2em;
 }
 
+div.field_with_errors input { border: 1px solid red; }
+
 h1, form { text-align: center; }
 table { margin: 0 auto; }
 td.changes { text-align: right; }
