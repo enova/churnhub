@@ -10,6 +10,7 @@ group :assets do
   gem 'coffee-rails', '~> 3.2.1'
   gem 'uglifier', '>= 1.0.3'
   gem 'haml'
+  gem 'd3-rails'
 end
 
 group :development do
