@@ -1,2 +1,12 @@
-%h1 ChurnHub
-= render "form"
+.pure-g
+  .pure-u-1-6
+  .pure-u-2-3
+    %h1 ChurnHub
+    = render "form"
+
+    .pure-menu.pure-menu-open{style: "border: 0; margin-top: 10px"}
+      %ul.repositories
+        - @repositories.each do |repo|
+          %li
+            = link_to repo.url, commits_path(repo.url)
+  .pure-u-1-6
