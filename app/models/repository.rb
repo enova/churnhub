@@ -13,7 +13,7 @@ class Repository < ActiveRecord::Base
   def fetch_commits_from_github
     github.commits(path).each do |commit|
       commits.create sha: commit.sha,
-               timestamp: commit.commit.author.date
+               timestamp: commit.commit.committer.date
     end
   end
 
