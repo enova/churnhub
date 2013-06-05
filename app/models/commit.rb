@@ -3,6 +3,8 @@ class Commit < ActiveRecord::Base
   belongs_to :repository
   serialize :files
 
+  scope :between, ->(start, finish){ where(timestamp: start..finish)}
+
   before_save :request_files
 
   def request_files
