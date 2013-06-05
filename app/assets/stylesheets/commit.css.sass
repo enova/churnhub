@@ -1,6 +1,20 @@
-.chart 
+.canvas 
   rect
     &.additions
-      fill: green
+      fill: #0f0
     &.deletions
-      fill: red
+      fill: #f22
+#grouped
+  div
+.label_canvas
+  line-height: 21px
+  float: left
+  text-align: right
+  padding-right: 10px
+  // text-anchor: end
+
+.changes:hover
+  .additions
+    fill: #6f6
+  .deletions
+    fill: #f66
