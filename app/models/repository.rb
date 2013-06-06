@@ -3,31 +3,16 @@ class Repository < ActiveRecord::Base
   has_many        :commits, dependent: :destroy
   validates       :url, presence: true, uniqueness: true
   attr_accessible :url
-  attr_reader :path
-
-  def as_json options = {}
-    options.reverse_merge! include: :commits
-    super options
-  end
+  attr_reader     :path
 
   def fetch_commits_from_github
-    github.commits(path).each do |commit|
-      commits.create sha: commit.sha,
-               timestamp: commit.commit.committer.date
+    github.shas.each do |sha|
+      commits.create github.commit_by_sha(sha).merge(sha: sha)
     end
   end
 
   def github
-    return @github if @github
-
-    @github = Octokit::Client.new
-    
-    if host != 'github.com'
-      @github.api_endpoint = "https://#{host}/api/v3"
-      @github.web_endpoint = "https://#{host}/"
-    end
-
-    @github
+    @github ||= Churnhub::Github.new path, host
   end
 
   def host
