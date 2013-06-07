@@ -5,9 +5,10 @@ class Commit < ActiveRecord::Base
 
   scope :between, ->(start, finish){ where(timestamp: start..finish)}
 
-  before_save :request_files
+  after_find :fetch_files_from_github_if_incomplete!
 
-  def request_files
-    timestamp, files = repository.github.commit_by_sha sha
+  def fetch_files_from_github_if_incomplete!
+    self.timestamp, self.files = repository.github.commit_by_sha(sha).values_at :timestamp, :files
+    save
   end
 end

@@ -7,7 +7,9 @@ class Repository < ActiveRecord::Base
 
   def fetch_commits_from_github
     github.shas.each do |sha|
-      commits.create github.commit_by_sha(sha).merge(sha: sha)
+      commits.create sha: sha,
+               timestamp: nil,
+                   files: nil
     end
   end
 

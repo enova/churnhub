@@ -9,4 +9,9 @@ class CommitsController < ApplicationController
 
     respond_with @commits
   end
+
+  def show
+    @commit = Repository.with_url(params[:url]).commits.find_by_sha params[:sha]
+    respond_with @commit
+  end
 end
