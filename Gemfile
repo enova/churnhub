@@ -1,5 +1,6 @@
 source 'https://rubygems.org'
 
+gem 'github-oauth'
 gem 'octokit'
 gem 'jquery-rails'
 gem 'rails', '3.2.13'
