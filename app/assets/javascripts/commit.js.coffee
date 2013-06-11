@@ -111,24 +111,34 @@ window.Repo =
     # Repo.timer = setTimeout (->
     #   Repo.render_charts()
     # ), 1000
-    Repo.render_charts()
+    Repo.render_timeline()
     console.log "called render charts"
 
-  render_charts: ->
-    # Repo.format_files()
-    # Repo.draw()
-    # Repo.animate()
-    # Repo.set_labels()
-    # Repo.commits.sort(timeline_chart.sort_timestamp_asc)
+    Repo.parsedFiles++
+    console.log Repo.parsedFiles
+    if(Repo.parsedFiles == Repo.num_commits)
+      console.log("asdf")
+      Repo.render_barchart()
+
+  render_barchart: ->
+    console.log("render bar")
+    Repo.format_files()
+    Repo.draw()
+    Repo.animate()
+    Repo.set_labels()
+
+  render_timeline: ->
     timeline_chart.render_timeline_chart (c for c in Repo.commits when c.aggregated_deletions? and c.aggregated_additions? and c.timestamp?).sort(timeline_chart.sort_timestamp_asc)
 
   init: (commits) ->
+    Repo.num_commits = commits.length
+    Repo.parsedFiles = 0
     for commit in commits
       if commit.files?
         Repo.parse_commit(commit)
       else
         $.getJSON window.location.origin + "/commits/#{commit.id}.json", Repo.parse_commit
-    Repo.render_charts() if Object.keys(Repo.commits).length > 0
+    Repo.render_timeline() if Object.keys(Repo.commits).length > 0
 
     timeline_chart.render_timeline_chart Repo.commits
 
@@ -153,16 +163,7 @@ window.Repo =
     Repo.prepared_files = Repo.formated_files
 
     
-  #  draw_refactor: ->  
-  #    files   = ({name:name, additions:f[0], deletions:f[1], changes:f[0]+f[1]} for name, f of Repo.files)
-  #    files.sort (a,b) -> b.changes - a.changes
-  #    scale   = d3.scale.linear().domain([0, d3.max(files, (d)-> d.changes)]).range([0, settings.width])
-  #    # textscale   = d3.scale.linear().domain([0, d3.max(files, (d)-> d.changes )]).range([0, 100])
-  #    chart = Repo.chart.selectAll("g").append("g").attr("class", "mainGroup")
-  #    group = Repo.chart.selectAll("rect")
-
   draw: ->
-    scale   = d3.scale.linear().domain([0, d3.max(Repo.formated_files, (d)-> d[3] )]).range([0, settings.width])
     textscale   = d3.scale.linear().domain([0, d3.max(Repo.formated_files, (d)-> d[3] )]).range([0, 100])
     # d3.max(d3.selectAll)
     changes = Repo.chart.selectAll("rect").data(Repo.formated_files).enter().append("g").attr("class", "changes")
@@ -203,20 +204,19 @@ window.Repo =
     labels.exit().remove()
 
   animate: ->
-    scale   = d3.scale.linear().domain([0, d3.max(Repo.formated_files, (d)-> d[3] )]).range([0, settings.width])
-    #console.log(Repo.chart.selectAll("rect.deletions"))
+    scale   = d3.scale.log().base(2).domain([0.1, d3.max(Repo.formated_files, (d)-> d[3] )]).range([0, settings.width])
     Repo.chart.selectAll("rect.deletions")
       .transition()
       .delay((d, i) -> (i / Repo.formated_files.length * settings.duration)+500 )
       .attr
-        x: (f) -> scale(f[1])
-        width: (f, i) -> scale(f[2])
+        x: (f) -> scale(f[3])*f[1]/f[3]
+        width: (f, i) -> scale(f[3])*f[2]/f[3]
       
     Repo.chart.selectAll("rect.additions")
       .transition()
       .delay((d, i) -> (i / Repo.formated_files.length * settings.duration)+500)
       .attr
-        width: (f, i) -> scale(f[1])
+        width: (f, i) -> scale(f[3])*f[1]/f[3]
 
     
     Repo.sort_files()
