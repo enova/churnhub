@@ -1,15 +1,14 @@
 class Repository < ActiveRecord::Base
-  after_save      :fetch_commits_from_github
   has_many        :commits, dependent: :destroy
   validates       :url, presence: true, uniqueness: true
   attr_accessible :url
   attr_reader     :path
 
-  def fetch_commits_from_github
-    github.shas.each do |sha|
-      commits.create sha: sha,
-               timestamp: nil,
-                   files: nil
+  def fetch_commits_from_github start=3.months.ago, finish=Date.today
+    github.shas(start, finish).each do |sha|
+      commits.where(sha: sha).first_or_create sha: sha,
+                                        timestamp: nil,
+                                            files: nil
     end
   end
 

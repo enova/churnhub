@@ -5,15 +5,19 @@ module Churnhub
 
       @client = Octokit::Client.new
       if host != 'github.com'
-        @client.api_endpoint  = "https://#{host}/api/v3"
-        @client.web_endpoint  = "https://#{host}/"
-        @client.client_id     = ENV["GITHUB_ID"]
-        @client.client_secret = ENV["GITHUB_SECRET"]
+        @client.api_endpoint   = "https://#{host}/api/v3"
+        @client.web_endpoint   = "https://#{host}/"
+        @client.client_id      = ENV["GITHUB_ID"]
+        @client.client_secret  = ENV["GITHUB_SECRET"]
+        @client.per_page       = 100
+        @client.auto_traversal = true
       end
     end
 
-    def shas
-      @client.commits(@path).map &:sha
+    def shas start, finish, branch="master"
+      start = start.strftime "%Y-%m-%d" if !start.is_a? String
+      finish = finish.strftime "%Y-%m-%d" if !finish.is_a? String
+      @client.commits_between(@path, start, finish, branch).map &:sha
     end
 
     def commit_by_sha sha
