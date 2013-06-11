@@ -1,6 +1,6 @@
 module Churnhub
   class Github
-    def initialize path, host='github.com'
+    def initialize token, path, host='github.com'
       @path = path
 
       @client = Octokit::Client.new
@@ -9,6 +9,7 @@ module Churnhub
       if host == 'github.com'
         @client.client_id      = ENV["GITHUB_ID"]
         @client.client_secret  = ENV["GITHUB_SECRET"]
+        @client.oauth_token    = token
       else
         @client.api_endpoint   = "https://#{host}/api/v3"
         @client.web_endpoint   = "https://#{host}/"

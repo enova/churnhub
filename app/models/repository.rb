@@ -4,16 +4,16 @@ class Repository < ActiveRecord::Base
   attr_accessible :url
   attr_reader     :path
 
-  def fetch_commits_from_github start=3.months.ago, finish=Date.today
-    github.shas(start, finish).each do |sha|
+  def fetch_commits_from_github token, start=3.months.ago, finish=Date.today
+    github(token).shas(start, finish).each do |sha|
       commits.where(sha: sha).first_or_create sha: sha,
                                         timestamp: nil,
                                             files: nil
     end
   end
 
-  def github
-    @github ||= Churnhub::Github.new path, host
+  def github token
+    @github ||= Churnhub::Github.new token, path, host
   end
 
   def host
