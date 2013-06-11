@@ -4,13 +4,14 @@ module Churnhub
       @path = path
 
       @client = Octokit::Client.new
+      @client.per_page       = 100
+
       if host != 'github.com'
         @client.api_endpoint   = "https://#{host}/api/v3"
         @client.web_endpoint   = "https://#{host}/"
+      else
         @client.client_id      = ENV["GITHUB_ID"]
         @client.client_secret  = ENV["GITHUB_SECRET"]
-        @client.per_page       = 100
-        @client.auto_traversal = true
       end
     end
 
