@@ -11,7 +11,7 @@
 #
 # It's strongly recommended to check this file into your version control system.
 
-ActiveRecord::Schema.define(:version => 20130610205957) do
+ActiveRecord::Schema.define(:version => 20130611011435) do
 
   create_table "commits", :force => true do |t|
     t.integer  "repository_id"
@@ -29,12 +29,5 @@ ActiveRecord::Schema.define(:version => 20130610205957) do
   end
 
   add_index "repositories", ["url"], :name => "index_repositories_on_url"
-
-  create_table "users", :force => true do |t|
-    t.string   "login"
-    t.string   "oauth_token"
-    t.datetime "created_at",  :null => false
-    t.datetime "updated_at",  :null => false
-  end
 
 end
