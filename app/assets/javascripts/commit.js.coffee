@@ -11,19 +11,21 @@ window.timeline_chart = do ->
   t = {}
   t.margin = 
     top: 20
-    right: 20
-    bottom: 30
-    left: 70
+    right: 0
+    bottom: 0
+    left: 10
   t.get_timestamp = (commit) -> commit.timestamp
   t.get_aggregated_additions = (commit) -> commit.aggregated_additions || 0
   t.get_aggregated_deletions = (commit) -> commit.aggregated_deletions || 0
-  t.width = (window.innerWidth * .9) - t.margin.left - t.margin.right
+  t.width = (window.innerWidth) - t.margin.left - t.margin.right
   t.height = 150 - t.margin.top - t.margin.bottom
   t.parse_date = d3.time.format("%Y-%m-%dT%XZ").parse
   t.x = d3.scale.linear().range([0, t.width])
   t.y = d3.scale.linear().range([t.height, 0])
-  t.x_axis = d3.svg.axis().scale(t.x).orient("bottom")
-  t.y_axis = d3.svg.axis().scale(t.y).orient("left")  
+  t.stack = d3.layout.stack().offset("wiggle")
+  t.layer = (commits) -> t.stack [({x: commit.pos, y: t.get_aggregated_additions(commit)} for commit in commits), ({x: commit.pos, y: t.get_aggregated_deletions(commit)} for commit in commits)]
+  # t.x_axis = d3.svg.axis().scale(t.x).orient("bottom")
+  # t.y_axis = d3.svg.axis().scale(t.y).orient("left")  
   t.sort_timestamp_asc = (a,b) -> a.timestamp-b.timestamp
   t.additions_area = d3.svg.area()
     .x (d) -> 
@@ -57,7 +59,8 @@ window.timeline_chart = do ->
     t.svg.selectAll("g").remove()
     t.x.domain [0 , filtered_commits.length]
     t.y.domain [0, d3.max(filtered_commits, t.summed_additions_deletions)]
-    a = t.svg.selectAll(".area").data([filtered_commits]).enter()
+    a = t.svg.selectAll(".area").data([filtered_commits])
+    a.enter()
       .append("g")
       .attr
         class: "area"
@@ -71,15 +74,31 @@ window.timeline_chart = do ->
       .attr
         d: t.additions_area
         class: "additions"
-    a.append("g")
-      .attr
-        class: "x axis"
-        transform: "translate(0," + t.height + ")"
-      .call t.x_axis
-    a.append("g")
-      .attr
-        class: "y axis"
-      .call(t.y_axis)
+    # .exit().remove
+    c = t.svg.selectAll(".point").data(filtered_commits)
+    c.enter()
+      .append("g")
+      .attr("class", "point")
+      .append("circle")
+      .transition()
+      .attr 
+        r: 2
+        cx: (d) -> 
+          t.x d.pos
+        cy: (d) ->
+          t.y t.get_aggregated_deletions(d) + t.get_aggregated_additions(d)
+    c.exit().remove()
+
+
+    # a.append("g")
+    #   .attr
+    #     class: "x axis"
+    #     transform: "translate(0," + t.height + ")"
+    #   .call t.x_axis
+    # a.append("g")
+    #   .attr
+    #     class: "y axis"
+    #   .call(t.y_axis)
   return t
 
 settings = 
@@ -107,12 +126,12 @@ window.Repo =
     Repo.calculate_files_of commit
     Repo.timestamp_to_d3 commit
     Repo.commits = Repo.commits.concat(commit)
-    # clearTimeout(Repo.timer)
-    # Repo.timer = setTimeout (->
-    #   Repo.render_charts()
-    # ), 1000
-    Repo.render_charts()
-    console.log "called render charts"
+    clearTimeout(Repo.timer)
+    Repo.timer = setTimeout (->
+      console.log "called render charts"
+      Repo.render_charts()
+    ), 400
+    # Repo.render_charts()
 
   render_charts: ->
     # Repo.format_files()

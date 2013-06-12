@@ -1,21 +1,16 @@
-.additions
-  fill: #0f0
-.deletions
-  fill: #f22
 #grouped
   div
 .label_chart
   max-width: 40%
-
   line-height: 21px
   float: left
   padding-right: 10px
   // text-anchor: end
 
 .changes:hover
-  .additions
+  &.additions
     fill: #6f6
-  .deletions
+  &.deletions
     fill: #f66
 
 .file-names
@@ -24,7 +19,11 @@
   text-align: right
   direction: rtl
 
-.axis path, .axis line 
-  fill: none
-  stroke: #000
-  shape-rendering: crispEdges
+#timeline
+  position: fixed
+  bottom: 0
+
+.additions
+  fill: #6f6
+.deletions
+  fill: #f66
