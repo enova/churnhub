@@ -11,7 +11,7 @@
 #
 # It's strongly recommended to check this file into your version control system.
 
-ActiveRecord::Schema.define(:version => 20130612154340) do
+ActiveRecord::Schema.define(:version => 20130612154945) do
 
   create_table "commit_files", :force => true do |t|
     t.integer  "file_info_id"
@@ -25,7 +25,6 @@ ActiveRecord::Schema.define(:version => 20130612154340) do
   create_table "commits", :force => true do |t|
     t.integer  "repository_id"
     t.string   "sha"
-    t.text     "files"
     t.datetime "timestamp"
     t.datetime "created_at",    :null => false
     t.datetime "updated_at",    :null => false

@@ -7,8 +7,7 @@ class Repository < ActiveRecord::Base
   def fetch_commits_from_github token, start=3.months.ago, finish=Date.today
     github(token).shas(start, finish).each do |sha|
       commits.where(sha: sha).first_or_create sha: sha,
-                                        timestamp: nil,
-                                            files: nil
+                                        timestamp: nil
     end
   end
 
