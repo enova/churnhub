@@ -1,7 +1,8 @@
 class Commit < ActiveRecord::Base
   attr_accessible :files, :sha, :timestamp
-  belongs_to :repository
   serialize :files
+  belongs_to :repository
+  has_many :file_infos, through: :commit_files
 
   scope :between, ->(start, finish){ where(timestamp: start..finish)}
 

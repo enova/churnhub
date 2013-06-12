@@ -1,0 +1,13 @@
+# Read about fixtures at http://api.rubyonrails.org/classes/ActiveRecord/Fixtures.html
+
+one:
+  file_info_id: 1
+  commit_id: 1
+  additions: 1
+  deletions: 1
+
+two:
+  file_info_id: 1
+  commit_id: 1
+  additions: 1
+  deletions: 1

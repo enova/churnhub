@@ -11,7 +11,16 @@
 #
 # It's strongly recommended to check this file into your version control system.
 
-ActiveRecord::Schema.define(:version => 20130611011435) do
+ActiveRecord::Schema.define(:version => 20130612154340) do
+
+  create_table "commit_files", :force => true do |t|
+    t.integer  "file_info_id"
+    t.integer  "commit_id"
+    t.integer  "additions"
+    t.integer  "deletions"
+    t.datetime "created_at",   :null => false
+    t.datetime "updated_at",   :null => false
+  end
 
   create_table "commits", :force => true do |t|
     t.integer  "repository_id"
@@ -20,6 +29,12 @@ ActiveRecord::Schema.define(:version => 20130611011435) do
     t.datetime "timestamp"
     t.datetime "created_at",    :null => false
     t.datetime "updated_at",    :null => false
+  end
+
+  create_table "file_infos", :force => true do |t|
+    t.string   "name"
+    t.datetime "created_at", :null => false
+    t.datetime "updated_at", :null => false
   end
 
   create_table "repositories", :force => true do |t|
