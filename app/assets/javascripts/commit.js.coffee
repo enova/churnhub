@@ -104,9 +104,8 @@ do ->
     temp = timeline_chart.get_timestamp_range((parseInt ls.css("left")) or 0, parseInt rs.css("left") or max_width)
     if not (_.isEqual(current_range,temp)) 
       current_range = temp
-      # deegan
-      console.log Repo.commits.filter (commit) -> 
-        commit.timestamp >= temp[0] and commit.timestamp <= temp[1] 
+      Repo.display_with_filtered_commits Repo.commits.filter (commit) -> 
+        commit.timestamp >= temp[0] and commit.timestamp <= temp[1]
       
 
   moved = (e) ->
@@ -303,23 +302,29 @@ window.Repo =
       Repo.move_to_new_position()
     ), settings.duration*2
 
-
+  find_index_of: (name, files_array) ->
+    for i in [0...files_array.length] by 1
+      if(name is files_array[i][0])
+        return i
+    return -1
 
   move_to_new_position: ->
+    #Repo.prepared_files.indexOf(Repo.chart.selectAll("rect.deletions")[0][i].__data__) * 23
+
     Repo.chart.selectAll("rect.deletions")
       .transition()
       .attr
-        y: (f, i) -> Repo.prepared_files.indexOf(Repo.chart.selectAll("rect.deletions")[0][i].__data__) * 23
+        y: (f, i) -> Repo.find_index_of(Repo.chart.selectAll("rect.deletions")[0][i].__data__[0], Repo.prepared_files)  * 23
 
     Repo.chart.selectAll("rect.additions")
       .transition()
       .attr
-        y: (f, i) -> Repo.prepared_files.indexOf(Repo.chart.selectAll("rect.deletions")[0][i].__data__) * 23
+        y: (f, i) -> Repo.find_index_of(Repo.chart.selectAll("rect.deletions")[0][i].__data__[0], Repo.prepared_files)  * 23
 
     Repo.chart.selectAll("text.bar-label")
       .transition()
       .attr
-        y: (f, i) -> Repo.prepared_files.indexOf(Repo.chart.selectAll("rect.deletions")[0][i].__data__) * 23 + 17
+        y: (f, i) -> Repo.find_index_of(Repo.chart.selectAll("rect.deletions")[0][i].__data__[0], Repo.prepared_files)  * 23 + 17
 
   filter: (text) ->
     Repo.prepared_files = []
@@ -329,6 +334,18 @@ window.Repo =
     console.log(Repo.prepared_files)
     Repo.move_to_new_position()
     Repo.set_labels()
+
+  display_with_filtered_commits: (filtered_commits) ->
+    Repo.files = {}
+    for commit in filtered_commits
+      for file in commit.files
+        name = file[0]
+        Repo.files[name]   or= [0, 0]
+        Repo.files[name][0] += file[1]
+        Repo.files[name][1] += file[2]
+    Repo.format_files()
+    filter("")
+    Repo.animate2()
 
 $.getJSON Repo.url, Repo.init
 window.t = timeline_chart
