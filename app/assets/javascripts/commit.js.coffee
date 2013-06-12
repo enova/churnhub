@@ -18,9 +18,16 @@ window.timeline_chart = do ->
   t.rx = d3.scale.linear().domain([0, t.width])
   t.x = d3.scale.linear().range([0, t.width])
   t.y = d3.scale.linear().range([t.height, 0])
-  t.stack = d3.layout.stack().offset("wiggle")
-  t.layer = (commits) -> t.stack [({x: commit.pos, y: t.get_aggregated_additions(commit)} for commit in commits), ({x: commit.pos, y: t.get_aggregated_deletions(commit)} for commit in commits)]
-  t.get_timestamp_range = (min_screen_x, max_screen_x) ->
+  t.stack = d3.layout.stack().offset("zero")
+  t.layer = (commits) -> t.stack [({x: commit.pos, y: t.get_aggregated_additions(commit), y0: 0} for commit in commits), ({x: commit.pos, y: t.get_aggregated_deletions(commit), y0: t.get_aggregated_additions} for commit in commits)]
+  t.area = d3.svg.area().x((d) ->
+    t.x d.x
+  ).y0((d) ->
+    t.y d.y0
+  ).y1((d) ->
+    t.y d.y + d.y0
+  )
+  t.get_timestamp_range = (min_screen_x, max_screen_x) -> 
     a = Math.floor(t.rx min_screen_x)
     b = Math.ceil(t.rx max_screen_x)
     [t.filtered_commits[a].timestamp, t.filtered_commits[b].timestamp]
@@ -60,23 +67,29 @@ window.timeline_chart = do ->
     t.svg.selectAll("path").remove()
     t.svg.selectAll("g").remove()
     t.x.domain [0 , filtered_commits.length]
-    t.rx.range [0 , filtered_commits.length]
     t.y.domain [0, d3.max(filtered_commits, t.summed_additions_deletions)]
-    a = t.svg.selectAll(".area").data([filtered_commits])
+    t.rx.range [0 , filtered_commits.length]
+    a = t.svg.selectAll(".area").data(t.layer filtered_commits)
+
     a.enter()
       .append("g")
       .attr
         class: "area"
-    a.append("path")
+      .append("path")
       .transition()
       .attr
-        d: t.deletions_area
-        class: "deletions"
-    a.append("path")
-      .transition()
-      .attr
-        d: t.additions_area
-        class: "additions"
+        d: t.area
+        class: (d,i) -> if i is 0 then "additions" else "deletions"
+    # a.append("path")
+    #   .transition()
+    #   .attr
+    #     d: t.deletions_area
+    #     class: "deletions"
+    # a.append("path")
+    #   .transition()
+    #   .attr
+    #     d: t.additions_area
+    #     class: "additions"
     # .exit().remove
     c = t.svg.selectAll(".point").data(filtered_commits)
     c.enter()
@@ -118,7 +131,6 @@ do ->
   up = (e)->
     ls_down = false
     rs_down = false
-    console.log timeline_chart.get_timestamp_range parseInt(ls.css("left")) || min_width, parseInt(rs.css("left")) || max_width
 
   moved = (e) ->
     ls.css("left", e.pageX-2.5) if ls_down and e.pageX+5 < (parseInt rs.css("left")) and e.pageX < max_width and e.pageX > min_width
@@ -158,7 +170,6 @@ window.Repo =
     #   Repo.render_charts()
     # ), 1000
     Repo.render_timeline()
-    console.log "called render charts"
 
     Repo.parsedFiles++
     console.log Repo.parsedFiles
