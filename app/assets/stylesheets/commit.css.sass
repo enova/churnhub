@@ -1,17 +1,26 @@
 #grouped
   margin-bottom: 200px
   margin-top: 40px
+
 .label_chart
   max-width: 40%
-  line-height: 21px
+  line-height: 23px
   float: left
   padding-right: 10px
 
+.additions
+  fill: rgba(45, 255, 45, 0.5)
+  stroke: rgba(45, 255, 45, 1)
+  &:hover
+    fill: rgba(45, 255, 45, 0.7)
+.deletions
+  fill: rgba(255, 45, 45, 0.5)
+  stroke: rgba(255, 45, 45, 1)
+  &:hover
+    fill: rgba(255, 45, 45, 0.6)
+
 .changes:hover
   &.additions
-    fill: #6f6
-  &.deletions
-    fill: #f66
 
 .file-names
   margin-left: 10px
@@ -33,11 +42,6 @@
   -moz-user-select: none
   -o-user-select: none
   user-select: none
-
-.additions
-  fill: #6f6
-.deletions
-  fill: #f66
 
 .slider
   position: fixed
