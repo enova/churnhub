@@ -3,7 +3,7 @@
 filter = () -> 
   a = $('#filter').val()
   window.Repo.filter(a)
-  window.Repo.update()
+  window.Repo.move_to_new_position()
 
 $('#filter').on("input",filter)
 
@@ -100,7 +100,6 @@ window.Repo =
   url:     window.location.pathname + ".json"
   files:   {}
   formated_files: []
-  add_commits: (commits) ->
 
   parse_commit: (commit)->
     Repo.add_files commit.files
@@ -141,6 +140,39 @@ window.Repo =
     Repo.render_timeline() if Object.keys(Repo.commits).length > 0
 
     timeline_chart.render_timeline_chart Repo.commits
+    console.log commit.id
+    if commit.files?
+      Repo.add_files commit.files
+      Repo.calculate_files_of commit
+      Repo.timestamp_to_d3 commit
+      
+    else
+      console.log "Shit got sent"
+
+    Repo.parsed_commits++
+    console.log("finished: " + Repo.parsed_commits)
+    
+    if(Repo.parsed_commits == Repo.commits.length) 
+      Repo.render_charts()
+  render_charts: ->
+    Repo.format_files()
+    Repo.draw()
+    Repo.animate()
+    Repo.set_labels()
+
+
+  add_commits: (commits) ->
+    Repo.parsed_commits = 0
+    for commit in Repo.commits
+      if commit.files? and commit.files.length > 0
+        console.log("already had files!!!")
+        Repo.parse_commit(commit)
+      else
+        $.getJSON window.location.origin + '/commits/' + commit.id + ".json", Repo.parse_commit
+        
+    Repo.render_timeline() if Object.keys(Repo.commits).length > 0
+    console.log("finished parsing")
+
 
   timestamp_to_d3: (commit) ->
     commit.timestamp = d3.time.format("%Y-%m-%dT%XZ").parse(commit.timestamp)
@@ -161,25 +193,23 @@ window.Repo =
   sort_files: ->
     Repo.formated_files.sort (a,b) -> (b[3] - a[3])
     Repo.prepared_files = Repo.formated_files
-
     
   draw: ->
+
+    Repo.chart.attr
+      height: Repo.formated_files.length*21
     textscale   = d3.scale.linear().domain([0, d3.max(Repo.formated_files, (d)-> d[3] )]).range([0, 100])
     # d3.max(d3.selectAll)
     changes = Repo.chart.selectAll("rect").data(Repo.formated_files).enter().append("g").attr("class", "changes")
       .append("svg:title")
       .text( (a) -> a[0])
 
-    
-    
     additions = Repo.chart.selectAll("g").data(Repo.formated_files).append("rect")
       .attr
         class: 'additions'
         y:     (f, i) -> i * 21
         width: 0
         height: 20
-      
-
 
     deletions = Repo.chart.selectAll("g").data(Repo.formated_files).append("rect")
       .attr
@@ -189,6 +219,11 @@ window.Repo =
         height: 20
         width: 0
 
+    bar_labels = Repo.chart.selectAll("g").data(Repo.formated_files).append("text")
+      .text((f, i) -> f[3]).attr
+        class: "bar-label"
+        x: 5
+        y: (f, i) -> i * 21 + 17
 
       
   set_labels: ->  
@@ -221,6 +256,9 @@ window.Repo =
     
     Repo.sort_files()
 
+    Repo.move_to_new_position()
+
+  move_to_new_position: ->
     Repo.chart.selectAll("rect.deletions")
       .transition()
       .delay((d, i) -> (settings.duration + 1000))
@@ -233,18 +271,11 @@ window.Repo =
       .attr
         y: (f, i) -> Repo.prepared_files.indexOf(Repo.chart.selectAll("rect.deletions")[0][i].__data__) * 21
 
-  update: ->
-    Repo.chart.selectAll("rect.deletions")
+    Repo.chart.selectAll("text.bar-label")
       .transition()
       .delay((d, i) -> (settings.duration + 1000))
       .attr
-        y: (f, i) -> Repo.prepared_files.indexOf(Repo.chart.selectAll("rect.deletions")[0][i].__data__) * 21
-
-    Repo.chart.selectAll("rect.additions")
-      .transition()
-      .delay((d, i) -> (settings.duration + 1000))
-      .attr
-        y: (f, i) -> Repo.prepared_files.indexOf(Repo.chart.selectAll("rect.deletions")[0][i].__data__) * 21
+        y: (f, i) -> Repo.prepared_files.indexOf(Repo.chart.selectAll("rect.deletions")[0][i].__data__) * 21 + 17
 
   filter: (text) ->
     Repo.prepared_files = []
@@ -252,7 +283,7 @@ window.Repo =
       if(Repo.formated_files[i][0].indexOf(text) != -1)
         Repo.prepared_files.push(Repo.formated_files[i])
     console.log(Repo.prepared_files)
-    Repo.update()
+    Repo.move_to_new_position()
     Repo.set_labels()
 
 $.getJSON Repo.url, Repo.init
