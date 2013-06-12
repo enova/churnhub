@@ -22,8 +22,34 @@
 #timeline
   position: fixed
   bottom: 0
+  -webkit-user-select: none
+  -khtml-user-select: none
+  -moz-user-select: none
+  -o-user-select: none
+  user-select: none
 
 .additions
   fill: #6f6
 .deletions
   fill: #f66
+
+.slider
+  position: absolute
+  height: 110px
+  width: 5px
+  background-color: blue
+  bottom: 0px
+  border-top-left-radius: 10px
+  border-top-right-radius: 10px
+  opacity: .6
+  border: 2px solid black
+  &:hover
+    box-shadow: 1px 1px 10px rgba(0, 0, 0, 0.4)
+  &.right 
+    cursor: default
+    left: 90%
+    background-color: green
+  &.left 
+    cursor: default
+    left: 10%
+

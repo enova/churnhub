@@ -10,20 +10,26 @@ $('#filter').on("input",filter)
 window.timeline_chart = do -> 
   t = {}
   t.margin = 
-    top: 20
+    top: 0
     right: 0
     bottom: 0
-    left: 10
+    left: 20
   t.get_timestamp = (commit) -> commit.timestamp
   t.get_aggregated_additions = (commit) -> commit.aggregated_additions || 0
   t.get_aggregated_deletions = (commit) -> commit.aggregated_deletions || 0
   t.width = (window.innerWidth) - t.margin.left - t.margin.right
-  t.height = 150 - t.margin.top - t.margin.bottom
+  t.height = 100 - t.margin.top - t.margin.bottom
   t.parse_date = d3.time.format("%Y-%m-%dT%XZ").parse
+  t.rx = d3.scale.linear().domain([0, t.width])
   t.x = d3.scale.linear().range([0, t.width])
   t.y = d3.scale.linear().range([t.height, 0])
   t.stack = d3.layout.stack().offset("wiggle")
   t.layer = (commits) -> t.stack [({x: commit.pos, y: t.get_aggregated_additions(commit)} for commit in commits), ({x: commit.pos, y: t.get_aggregated_deletions(commit)} for commit in commits)]
+  t.get_timestamp_range = (min_screen_x, max_screen_x) -> 
+    a = Math.floor(t.rx min_screen_x)
+    b = Math.ceil(t.rx max_screen_x)
+    [t.filtered_commits[a].timestamp, t.filtered_commits[b].timestamp]
+
   # t.x_axis = d3.svg.axis().scale(t.x).orient("bottom")
   # t.y_axis = d3.svg.axis().scale(t.y).orient("left")  
   t.sort_timestamp_asc = (a,b) -> a.timestamp-b.timestamp
@@ -55,9 +61,11 @@ window.timeline_chart = do ->
   t.render_timeline_chart = (filtered_commits) ->
     for a in [0 .. filtered_commits.length-1]
       filtered_commits[a].pos = a if filtered_commits[a]?
+    t.filtered_commits = filtered_commits
     t.svg.selectAll("path").remove()
     t.svg.selectAll("g").remove()
     t.x.domain [0 , filtered_commits.length]
+    t.rx.range [0 , filtered_commits.length]
     t.y.domain [0, d3.max(filtered_commits, t.summed_additions_deletions)]
     a = t.svg.selectAll(".area").data([filtered_commits])
     a.enter()
@@ -100,6 +108,30 @@ window.timeline_chart = do ->
     #     class: "y axis"
     #   .call(t.y_axis)
   return t
+
+do ->
+  ls = $('.left.slider')
+  rs = $('.right.slider')
+  max_width = $('#timeline>svg').innerWidth() - timeline_chart.margin.right - 10
+  min_width = timeline_chart.margin.left
+  ls_down = false
+  rs_down = false
+  down = (e)-> 
+    ls_down = true if (e.data is ls)
+    rs_down = true if (e.data is rs)
+          
+  up = (e)->
+    ls_down = false 
+    rs_down = false
+    console.log timeline_chart.get_timestamp_range parseInt(ls.css("left")) || min_width, parseInt(rs.css("left")) || max_width
+
+  moved = (e) -> 
+    ls.css("left", e.pageX-2.5) if ls_down and e.pageX+5 < (parseInt rs.css("left")) and e.pageX < max_width and e.pageX > min_width
+    rs.css("left", e.pageX-2.5) if rs_down and e.pageX-5 > (parseInt ls.css("left")) and e.pageX < max_width and e.pageX > min_width
+  ls.on 'mousedown', ls, down
+  rs.on 'mousedown', rs, down
+  $(document).on('mouseup', up).on('mousemove', moved).on('mouseenter', up)
+
 
 settings = 
   width: 500
