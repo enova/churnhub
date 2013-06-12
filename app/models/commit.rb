@@ -2,9 +2,20 @@ class Commit < ActiveRecord::Base
   attr_accessible :sha, :timestamp
   belongs_to :repository
   has_many :commit_files
+  has_many :files, class_name: 'CommitFile'
   has_many :file_infos, through: :commit_files
 
   scope :between, ->(start, finish){ where(timestamp: start..finish)}
+
+  def as_json options = {}
+    super options.reverse_merge include: {
+      files: {
+        methods: :filename,
+        only: [:additions, :deletions],
+      },
+    },
+    only: [:id, :sha, :timestamp]
+  end
 
   def fetch_files_from_github_if_incomplete! token
     return if self.timestamp
