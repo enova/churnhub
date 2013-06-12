@@ -246,7 +246,8 @@ window.Repo =
     Repo.chart.attr
       height: Repo.formated_files.length * 23
     textscale   = d3.scale.linear().domain([0, d3.max(Repo.formated_files, (d)-> d[3] )]).range([0, 100])
-    # d3.max(d3.selectAll)
+
+    Repo.sort_files()
     changes = Repo.chart.selectAll("rect").data(Repo.formated_files).enter().append("g").attr("class", "changes")
       .append("svg:title")
       .text( (a) -> a[0])
@@ -287,44 +288,57 @@ window.Repo =
     labels.exit().remove()
 
   animate: ->
-    scale   = d3.scale.log().base(2).domain([0.1, d3.max(Repo.formated_files, (d)-> d[3] )]).range([0, settings.width])
+    scale   = d3.scale.log().base(10).domain([0.1, d3.max(Repo.formated_files, (d)-> d[3] )]).range([0, settings.width])
     Repo.chart.selectAll("rect.deletions")
-      .transition()
+      .transition(settings.duration)
       .delay((d, i) -> (i / Repo.formated_files.length * settings.duration) )
       .attr
         x: (f) -> if f[3] is 0 then 0 else scale(f[3])*f[1]/f[3]
         width: (f, i) -> if f[3] is 0 then 0 else scale(f[3])*f[2]/f[3]
 
     Repo.chart.selectAll("rect.additions")
-      .transition()
+      .transition(settings.duration)
+      .delay((d, i) -> (i / Repo.formated_files.length * settings.duration))
+      .attr
+        width: (f, i) -> if f[3] is 0 then 0 else scale(f[3])*f[1]/f[3]
+
+  #please leave this for now! I will be using this for scalling with the time line --Thomas
+  animate2: ->
+    scale   = d3.scale.log().base(10).domain([0.1, d3.max(Repo.formated_files, (d)-> d[3] )]).range([0, settings.width])
+    Repo.chart.selectAll("rect.deletions")
+      .transition(settings.duration)
+      .delay((d, i) -> (i / Repo.formated_files.length * settings.duration) )
+      .attr
+        x: (f) -> if f[3] is 0 then 0 else scale(f[3])*f[1]/f[3]
+        width: (f, i) -> if f[3] is 0 then 0 else scale(f[3])*f[2]/f[3]
+
+    Repo.chart.selectAll("rect.additions")
+      .transition(settings.duration)
       .delay((d, i) -> (i / Repo.formated_files.length * settings.duration))
       .attr
         width: (f, i) -> if f[3] is 0 then 0 else scale(f[3])*f[1]/f[3]
 
 
     Repo.sort_files()
-    clearTimeout(Repo.timer)
     Repo.timer = setTimeout (->
       Repo.move_to_new_position()
-    ), settings.duration
+    ), settings.duration*2
+
 
 
   move_to_new_position: ->
     Repo.chart.selectAll("rect.deletions")
       .transition()
-      .delay((d, i) -> (100))
       .attr
         y: (f, i) -> Repo.prepared_files.indexOf(Repo.chart.selectAll("rect.deletions")[0][i].__data__) * 23
 
     Repo.chart.selectAll("rect.additions")
       .transition()
-      .delay((d, i) -> (100))
       .attr
         y: (f, i) -> Repo.prepared_files.indexOf(Repo.chart.selectAll("rect.deletions")[0][i].__data__) * 23
 
     Repo.chart.selectAll("text.bar-label")
       .transition()
-      .delay((d, i) -> (100))
       .attr
         y: (f, i) -> Repo.prepared_files.indexOf(Repo.chart.selectAll("rect.deletions")[0][i].__data__) * 23 + 17
 
