@@ -5,7 +5,7 @@ class CommitsController < ApplicationController
     params.reverse_merge! start: 1.year.ago, finish: Date.today
 
     @repository = Repository.with_url params[:url]
-    @repository.fetch_commits_from_github params[:start], params[:finish]
+    @repository.fetch_commits_from_github session[:access_token], params[:start], params[:finish]
     @commits    = @repository.commits
 
     respond_with @commits
@@ -13,7 +13,7 @@ class CommitsController < ApplicationController
 
   def show
     @commit = Commit.find params[:id]
-    @commit.fetch_files_from_github_if_incomplete!
+    @commit.fetch_files_from_github_if_incomplete! session[:access_token]
     respond_with @commit
   end
 end
