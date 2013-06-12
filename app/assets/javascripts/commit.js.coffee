@@ -283,6 +283,7 @@ window.Repo =
   #please leave this for now! I will be using this for scalling with the time line --Thomas
   animate2: ->
     scale   = d3.scale.log().base(10).domain([0.1, d3.max(Repo.formated_files, (d)-> d[3] )]).range([0, settings.width])
+    Repo.chart.selectAll("rect").data(Repo.formated_files)
     Repo.chart.selectAll("rect.deletions")
       .transition(settings.duration)
       .delay((d, i) -> (i / Repo.formated_files.length * settings.duration) )
@@ -297,10 +298,10 @@ window.Repo =
         width: (f, i) -> if f[3] is 0 then 0 else scale(f[3])*f[1]/f[3]
 
 
-    Repo.sort_files()
-    Repo.timer = setTimeout (->
-      Repo.move_to_new_position()
-    ), settings.duration*2
+    # Repo.sort_files()
+    # Repo.timer = setTimeout (->
+    #   Repo.move_to_new_position()
+    # ), settings.duration*2
 
   find_index_of: (name, files_array) ->
     for i in [0...files_array.length] by 1
@@ -344,7 +345,7 @@ window.Repo =
         Repo.files[name][0] += file[1]
         Repo.files[name][1] += file[2]
     Repo.format_files()
-    filter("")
+    #filter("")
     Repo.animate2()
 
 $.getJSON Repo.url, Repo.init
