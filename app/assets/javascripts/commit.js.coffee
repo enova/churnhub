@@ -292,14 +292,14 @@ window.Repo =
       .transition()
       .delay((d, i) -> (i / Repo.formated_files.length * settings.duration) )
       .attr
-        x: (f) -> scale(f[3])*f[1]/f[3]
-        width: (f, i) -> scale(f[3])*f[2]/f[3]
+        x: (f) -> if f[3] is 0 then 0 else scale(f[3])*f[1]/f[3]
+        width: (f, i) -> if f[3] is 0 then 0 else scale(f[3])*f[2]/f[3]
 
     Repo.chart.selectAll("rect.additions")
       .transition()
       .delay((d, i) -> (i / Repo.formated_files.length * settings.duration))
       .attr
-        width: (f, i) -> scale(f[3])*f[1]/f[3]
+        width: (f, i) -> if f[3] is 0 then 0 else scale(f[3])*f[1]/f[3]
 
 
     Repo.sort_files()
