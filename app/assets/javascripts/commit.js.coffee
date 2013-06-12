@@ -1,11 +1,6 @@
 #= require d3
 #Array.prototype.inject = (init, fn) -> this.reduce(fn, init)
-filter = () -> 
-  a = $('#filter').val()
-  window.Repo.filter(a)
-  window.Repo.move_to_new_position()
 
-$('#filter').on("input",filter)
 
 window.timeline_chart = do -> 
   t = {}
@@ -224,7 +219,8 @@ window.Repo =
         class: "bar-label"
         x: 5
         y: (f, i) -> i * 21 + 17
-
+        style: (f, i) -> "fill: " + (if f[3] is 0 then "#a1f" else "#fff")
+       
       
   set_labels: ->  
 
@@ -256,7 +252,7 @@ window.Repo =
     
     Repo.sort_files()
 
-    Repo.move_to_new_position()
+    Repo.move_to_new_position() 
 
   move_to_new_position: ->
     Repo.chart.selectAll("rect.deletions")
@@ -288,3 +284,11 @@ window.Repo =
 
 $.getJSON Repo.url, Repo.init
 window.t = timeline_chart
+
+f = $('#filter')
+filter = () -> 
+  a = f.val()
+  window.Repo.filter(a)
+  window.Repo.move_to_new_position()
+
+f.on("input",filter)
