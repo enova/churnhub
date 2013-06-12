@@ -35,20 +35,6 @@ window.timeline_chart = do ->
   # t.x_axis = d3.svg.axis().scale(t.x).orient("bottom")
   # t.y_axis = d3.svg.axis().scale(t.y).orient("left")
   t.sort_timestamp_asc = (a,b) -> a.timestamp-b.timestamp
-  t.additions_area = d3.svg.area()
-    .x (d) ->
-      t.x d.pos
-    .y0(t.height)
-    .y1 (d) ->
-      t.y t.get_aggregated_additions(d)
-    # .interpolate("basis")
-  t.deletions_area = d3.svg.area()
-    .x (d) ->
-      t.x d.pos
-    .y0(t.height)
-    .y1 (d) ->
-      t.y t.get_aggregated_deletions(d) + t.get_aggregated_additions(d)
-    # .interpolate("basis")
   t.summed_additions_deletions = (d) ->
     t.get_aggregated_additions(d) + t.get_aggregated_deletions(d)
   t.svg = d3.select("#timeline")
@@ -80,37 +66,23 @@ window.timeline_chart = do ->
       .attr
         d: t.area
         class: (d,i) -> if i is 0 then "additions" else "deletions"
-    # a.append("path")
-    #   .transition()
-    #   .attr
-    #     d: t.deletions_area
-    #     class: "deletions"
-    # a.append("path")
-    #   .transition()
-    #   .attr
-    #     d: t.additions_area
-    #     class: "additions"
-    # .exit().remove
+
     c = t.svg.selectAll(".point").data(filtered_commits)
     c.enter()
       .append("g")
       .attr("class", "point")
       .append("circle")
-      .transition()
       .attr
-        r: 2
+        class: "deletions"
+        r: 5
         cx: (d) ->
           t.x d.pos
         cy: (d) ->
           t.y t.get_aggregated_deletions(d) + t.get_aggregated_additions(d)
+      .append("title")
+      .text (d) -> d.timestamp
     c.exit().remove()
 
-
-    # a.append("g")
-    #   .attr
-    #     class: "x axis"
-    #     transform: "translate(0," + t.height + ")"
-    #   .call t.x_axis
     # a.append("g")
     #   .attr
     #     class: "y axis"
