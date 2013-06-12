@@ -1,6 +1,7 @@
 #= require d3
 #= require underscore
-#Array.prototype.inject = (init, fn) -> this.reduce(fn, init)
+
+Number.prototype.clip = (min, max) -> Math.min(max, Math.max(min, this))
 
 window.timeline_chart = do ->
   t = {}
@@ -11,8 +12,8 @@ window.timeline_chart = do ->
   t.get_timestamp = (commit) -> commit.timestamp
   t.get_aggregated_additions = (commit) -> commit.aggregated_additions or 0
   t.get_aggregated_deletions = (commit) -> commit.aggregated_deletions or 0
-  t.width = window.innerWidth
-  t.height = 100
+  t.width  = $("#timeline").width()
+  t.height = $("#timeline").height()
   t.parse_date = d3.time.format("%Y-%m-%dT%XZ").parse
   t.rx = d3.scale.linear().domain([0, t.width])
   t.x = d3.scale.linear().range([0, t.width])
@@ -42,7 +43,6 @@ window.timeline_chart = do ->
       class: "timeline_chart_svg"
       width: t.width
       height: t.height
-
   t.render_timeline_chart = (filtered_commits) ->
     for i in [0 .. filtered_commits.length-1]
       filtered_commits[i].pos = i if filtered_commits[i]?
@@ -87,37 +87,27 @@ window.timeline_chart = do ->
   return t
 
 do ->
-  ls = $('.left.slider')
-  rs = $('.right.slider')
-  max_width = $('#timeline>svg').innerWidth()
-  min_width = 0
-  ls_down = false
-  rs_down = false
-  current_range = []
-  down = (e)->
-    ls_down = true if (e.data is ls)
-    rs_down = true if (e.data is rs)
-
-  up = (e)->
-    ls_down = false
-    rs_down = false
-    temp = timeline_chart.get_timestamp_range((parseInt ls.css("left")) or 0, parseInt rs.css("left") or max_width)
-    if not (_.isEqual(current_range,temp)) 
-      current_range = temp
-      # deegan
-      console.log Repo.commits.filter (commit) -> 
-        commit.timestamp >= temp[0] and commit.timestamp <= temp[1] 
-      
+  ls         = $('.left.slider')
+  rs         = $('.right.slider')
+  $highlight = $("#highlight")
+  rs_down    = ls_down = false
+  width      = $("#timeline").width()
 
   moved = (e) ->
-    current_rs_left = parseInt rs.css("left") or 0
-    current_ls_left = parseInt ls.css("left") or max_width
-    ls.css("left", if (e.pageX > max_width) then max_width - 2.5 else e.pageX - 2.5 ) if ls_down and e.pageX+5 < current_rs_left and current_ls_left < max_width and current_ls_left > min_width
-    rs.css("left", if (e.pageX > max_width) then max_width - 2.5 else e.pageX - 2.5 ) if rs_down and e.pageX-5 > current_ls_left and current_rs_left < max_width and current_rs_left > min_width
-  ls.on 'mousedown', ls, down
-  rs.on 'mousedown', rs, down
-  $(document).on('mouseup', up).on('mousemove', moved).on('mouseleave', up).on('mouseenter', up)
+    x = e.pageX - 10
+    if ls_down
+      x = x.clip(0, rs.offset().left - 23)
+      $highlight.css left: x + 21
+      ls.css         left: x
+    if rs_down
+      x = x.clip(ls.offset().left + 23, width - 21)
+      $highlight.css right: width - x
+      rs.css          left: x
 
+  ls.on 'mousedown', -> ls_down = true
+  rs.on 'mousedown', -> rs_down = true
+
+  $(document).on('mousemove', moved).on 'mouseup mouseenter', -> rs_down = ls_down = false
 
 settings =
   width: 500
