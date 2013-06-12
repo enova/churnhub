@@ -24,7 +24,10 @@ module Churnhub
 
     def commit_by_sha sha
       commit_json, files_json = @client.commit(@path, sha).values_at("commit", "files")
-      { timestamp: commit_json.committer.date,
+      {       timestamp: commit_json.committer.date,
+              committer: { name: commit_json.committer.name,
+                          email: commit_json.committer.email
+                         },
         files: files_json.map do |f|
           f.values_at "filename", "additions", "deletions"
         end
