@@ -6,7 +6,16 @@
   <%= csrf_meta_tags %>
 </head>
 <body>
-  <%= yield %>
+  <header>
+    <% if session[:access_token] %>
+      <%= link_to "logout", "/signout" %>
+    <% else %>
+      <%= link_to "log in via github", "/signin" %>
+    <% end %>
+  </header>
+  <section id="content">
+    <%= yield %>
+  </section>
   <%= javascript_include_tag "application" %>
   <script>document.write('<script src="http://' + (location.host || 'localhost').split(':')[0] + ':35729/livereload.js?snipver=1"></' + 'script>')</script>
 </body>
