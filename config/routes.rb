@@ -1,5 +1,5 @@
 Churnhub::Application.routes.draw do
-  resources :repositories, except: [:show]
+  resources :repositories, only: [:create]
   resources :commits, only: [:show]
 
   get '/signin'  => "session#signin"
