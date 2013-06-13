@@ -2,9 +2,10 @@ class window.Timeline
   recalculate: ->
     @width  = @$el.width()
     @height = @$el.height()
-    @rx     = d3.scale.linear().domain([0, @width])
     @x      = d3.scale.linear().range([0, @width])
+    @rx     = d3.scale.linear().domain([0, @width])
     @y      = d3.scale.linear().range([@height, 0])
+    @ry     = d3.scale.linear().domain([@height, 0])
 
   get_timestamp:            (commit) -> commit.timestamp
   get_aggregated_additions: (commit) -> commit.aggregated_additions or 0
@@ -13,10 +14,25 @@ class window.Timeline
   stack:      d3.layout.stack().offset("zero")
   parse_date: d3.time.format("%Y-%m-%dT%XZ").parse
 
+  # Good place to put this? Jeff
+  $x_position: $("#x-position")
+  $y_position: $("#y-position")
+  tooltip_timeout: false
+  draw_tooltip: (e) => 
+    clearTimeout(@tooltip_timeout)
+    x = e.offsetX - 20
+    y = e.offsetY
+    @$y_position.text(Math.round(@ry(y)))
+    @tooltip_timeout = setTimeout =>
+      @$x_position.text(JSON.stringify(@filtered_commits[Math.round(@rx(x))]))
+      console.log @filtered_commits[Math.round(@rx(x))], Math.round(@ry(y))
+    , 50
+
   summed_additions_deletions: (d) => @get_aggregated_additions(d) + @get_aggregated_deletions(d)
 
   constructor: (@$el) ->
     @recalculate()
+    @$el.on('mousemove', @draw_tooltip)    
 
     @layer = (commits) =>
       deletions = ({x: commit.pos, y: @get_aggregated_additions(commit), y0: 0} for commit in commits)
@@ -44,9 +60,11 @@ class window.Timeline
 
       @svg.selectAll("path").remove()
       @svg.selectAll("g").remove()
+      t = d3.max(filtered_commits, @summed_additions_deletions)
       @x.domain [0 , filtered_commits.length]
-      @y.domain [0, d3.max(filtered_commits, @summed_additions_deletions)]
-      @rx.range [0 , filtered_commits.length - 1]
+      @y.domain [0, t]
+      @rx.range [0 , filtered_commits.length - 1] # Question: Why -1
+      @ry.range [0 , t] # Question: Why -1
       a = @svg.selectAll(".area").data(@layer filtered_commits)
 
       a.enter()
