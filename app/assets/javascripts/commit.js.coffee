@@ -30,7 +30,6 @@ window.timeline_chart = do ->
   t.get_timestamp_range = (min_screen_x, max_screen_x) -> 
     a = Math.floor(t.rx min_screen_x)
     b = Math.ceil(t.rx max_screen_x)
-    console.log "get_timestamp_range", a,b,[t.filtered_commits[a].timestamp, t.filtered_commits[b].timestamp]
     [t.filtered_commits[a].timestamp, t.filtered_commits[b].timestamp]
   # t.x_axis = d3.svg.axis().scale(t.x).orient("bottom")
   # t.y_axis = d3.svg.axis().scale(t.y).orient("left")
@@ -104,11 +103,11 @@ do ->
       x = x.clip(ls.offset().left + 23, width - 21)
       $highlight.css right: width - x
       rs.css          left: x
-    temp = [ls.offset().left || 0 , rs.offset().left]
+    temp = timeline_chart.get_timestamp_range(ls.offset().left || 0 , rs.offset().left)
     if not _.isEqual(current, temp) 
       current = temp
       clearTimeout(timeout)
-      timeout = setTimeout -> 
+      timeout = setTimeout ->
         Repo.display_with_filtered_commits Repo.commits.filter (commit) -> 
           commit.timestamp >= current[0] and commit.timestamp <= current[1] 
       , 50
