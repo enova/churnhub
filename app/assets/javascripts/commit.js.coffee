@@ -363,8 +363,8 @@ window.Repo =
     Repo.chart.selectAll("text.bar-label")
       .text (f) -> 
         file = Repo.correct_object(f)
-        return 0 if file is undefined
-        f[3]
+        return "" if file is undefined
+        return file[3]
 
     Repo.chart.selectAll("rect.deletions")
       .transition(settings.duration)
