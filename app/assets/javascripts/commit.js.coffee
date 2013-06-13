@@ -132,9 +132,15 @@ window.Repo =
     Repo.commits = Repo.commits.concat(commit)
     Repo.render_timeline()
 
-    Repo.parsedFiles++
-    console.log Repo.parsedFiles
-    if(Repo.parsedFiles == Repo.num_commits)
+    Repo.parsed_files++
+    Repo.progress_text.text("Loaded #{Repo.parsed_files} of #{Repo.num_commits}")
+    Repo.progress_bar.css("width", Repo.parsed_files / Repo.num_commits * 100+"%")
+    # debugger if Repo.parsed_files > 10
+    if(Repo.parsed_files == Repo.num_commits)
+      Repo.pure_form.show()
+      Repo.progress_bar.hide()
+      Repo.progress_text.hide()
+      Repo.progress_container.hide()
       Repo.render_barchart()
 
   render_barchart: ->
@@ -149,7 +155,16 @@ window.Repo =
 
   init: (commits) ->
     Repo.num_commits = commits.length
-    Repo.parsedFiles = 0
+    Repo.parsed_files = 0
+    Repo.pure_form = $(".pure-form")
+    Repo.progress_container = $("#progress-container")
+    Repo.progress_text = $("#progress-text")
+    Repo.progress_bar = $("#progress-bar")
+    Repo.progress_container.show()
+    Repo.progress_text.show()
+    Repo.progress_bar.show()
+    Repo.pure_form.hide()
+
     for commit in commits
       if commit.files?
         Repo.parse_commit(commit)
