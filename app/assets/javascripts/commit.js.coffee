@@ -1,89 +1,78 @@
-#= require d3
-#= require underscore
+class window.Timeline
+  recalculate: ->
+    @width  = @$el.width()
+    @height = @$el.height()
+    @rx     = d3.scale.linear().domain([0, @width])
+    @x      = d3.scale.linear().range([0, @width])
+    @y      = d3.scale.linear().range([@height, 0])
 
-Number.prototype.clip = (min, max) -> Math.min(max, Math.max(min, this))
+  get_timestamp:            (commit) -> commit.timestamp
+  get_aggregated_additions: (commit) -> commit.aggregated_additions or 0
+  get_aggregated_deletions: (commit) -> commit.aggregated_deletions or 0
 
-window.timeline_chart = do ->
-  t = {}
-  t.recalculate = ->
-    t.width = $("timeline").width()
-    t.rx = d3.scale.linear().domain([0, t.width])
-    t.x = d3.scale.linear().range([0, t.width])
-  t.get_timestamp = (commit) -> commit.timestamp
-  t.get_aggregated_additions = (commit) -> commit.aggregated_additions or 0
-  t.get_aggregated_deletions = (commit) -> commit.aggregated_deletions or 0
-  t.width  = $("#timeline").width()
-  t.height = $("#timeline").height()
-  t.parse_date = d3.time.format("%Y-%m-%dT%XZ").parse
-  t.rx = d3.scale.linear().domain([0, t.width])
-  t.x = d3.scale.linear().range([0, t.width])
-  t.y = d3.scale.log().range([t.height, 0])
-  t.stack = d3.layout.stack().offset("zero")
-  t.layer = (commits) -> t.stack [({x: commit.pos, y: t.get_aggregated_additions(commit), y0: 0} for commit in commits), ({x: commit.pos, y: t.get_aggregated_deletions(commit), y0: t.get_aggregated_additions} for commit in commits)]
-  t.area = d3.svg.area().x((d) ->
-    t.x d.x
-  ).y0((d) ->
-    t.y d.y0
-  ).y1((d) ->
-    t.y d.y + d.y0
-  )
-  t.get_timestamp_range = (min_screen_x, max_screen_x) -> 
-    a = Math.floor(t.rx min_screen_x)
-    b = Math.ceil(t.rx max_screen_x)
-    [t.filtered_commits[a].timestamp, t.filtered_commits[b].timestamp]
-  # t.x_axis = d3.svg.axis().scale(t.x).orient("bottom")
-  # t.y_axis = d3.svg.axis().scale(t.y).orient("left")
-  t.sort_timestamp_asc = (a,b) -> a.timestamp-b.timestamp
-  t.summed_additions_deletions = (d) ->
-    t.get_aggregated_additions(d) + t.get_aggregated_deletions(d)
-  t.svg = d3.select("#timeline")
-    .append("svg")
-    .attr
-      class: "timeline_chart_svg"
-      width: t.width
-      height: t.height
-  t.render_timeline_chart = (filtered_commits) ->
-    for i in [0 .. filtered_commits.length-1]
-      filtered_commits[i].pos = i if filtered_commits[i]?
-    t.filtered_commits = filtered_commits
-    t.svg.selectAll("path").remove()
-    t.svg.selectAll("g").remove()
-    t.x.domain [0 , filtered_commits.length]
-    t.y.domain [0.1, d3.max(filtered_commits, t.summed_additions_deletions)]
-    t.rx.range [0 , filtered_commits.length-1]
-    a = t.svg.selectAll(".area").data(t.layer filtered_commits)
+  stack:      d3.layout.stack().offset("zero")
+  parse_date: d3.time.format("%Y-%m-%dT%XZ").parse
 
-    a.enter()
-      .append("g")
-      .attr
-        class: "area"
-      .append("path")
-      .transition()
-      .attr
-        d: t.area
-        class: (d,i) -> if i is 0 then "additions" else "deletions"
+  summed_additions_deletions: (d) => @get_aggregated_additions(d) + @get_aggregated_deletions(d)
 
-    c = t.svg.selectAll(".point").data(filtered_commits)
-    c.enter()
-      .append("g")
-      .attr("class", "point")
-      .append("circle")
-      .attr
-        class: "deletions"
-        r: 5
-        cx: (d) ->
-          t.x d.pos
-        cy: (d) ->
-          t.y t.get_aggregated_deletions(d) + t.get_aggregated_additions(d)
-      .append("title")
-      .text (d) -> d.timestamp
-    c.exit().remove()
+  constructor: (@$el) ->
+    @recalculate()
 
-    # a.append("g")
-    #   .attr
-    #     class: "y axis"
-    #   .call(t.y_axis)
-  return t
+    @layer = (commits) =>
+      deletions = ({x: commit.pos, y: @get_aggregated_additions(commit), y0: 0} for commit in commits)
+      additions = ({x: commit.pos, y: @get_aggregated_deletions(commit), y0: @get_aggregated_additions} for commit in commits)
+
+      @stack [deletions, additions]
+
+    @area = d3.svg.area().x((d) => @x d.x).y0((d) => @y d.y0).y1((d) => @y d.y + d.y0)
+
+    @get_timestamp_range = (min_screen_x, max_screen_x) =>
+      a = Math.floor @rx(min_screen_x)
+      b = Math.ceil  @rx(max_screen_x)
+      [@filtered_commits[a].timestamp, @filtered_commits[b].timestamp]
+    @sort_timestamp_asc = (a,b) => a.timestamp - b.timestamp
+
+    @svg = d3.select(@$el.selector)
+      .append("svg").attr
+        class: "timeline_chart_svg"
+        width: @width
+        height: @height
+    @render = (filtered_commits) =>
+      for commit, i in filtered_commits
+        commit.pos = i if commit?
+      @filtered_commits = filtered_commits
+
+      @svg.selectAll("path").remove()
+      @svg.selectAll("g").remove()
+      @x.domain [0 , filtered_commits.length]
+      @y.domain [0, d3.max(filtered_commits, @summed_additions_deletions)]
+      @rx.range [0 , filtered_commits.length - 1]
+      a = @svg.selectAll(".area").data(@layer filtered_commits)
+
+      a.enter()
+        .append("g").attr
+          class: "area"
+        .append("path").transition().attr
+          d: @area
+          class: (d, i) -> if i is 0 then "additions" else "deletions"
+
+      c = @svg.selectAll(".point").data(filtered_commits)
+      c.enter()
+        .append("g")
+        .attr("class", "point")
+        .append("circle")
+        .attr
+          class: "deletions"
+          r: 5
+          cx: (d) =>
+            @x d.pos
+          cy: (d) =>
+            @y @get_aggregated_deletions(d) + @get_aggregated_additions(d)
+        .append("title")
+        .text (d) -> d.timestamp
+      c.exit().remove()
+
+window.timeline_chart = new Timeline($("#timeline"))
 
 do ->
 
@@ -105,13 +94,13 @@ do ->
       $highlight.css right: width - x
       rs.css          left: x
     temp = timeline_chart.get_timestamp_range(ls.offset().left || 0 , rs.offset().left)
-    if not _.isEqual(current, temp) 
+    if not _.isEqual(current, temp)
       current = temp
       clearTimeout(timeout)
       timeout = setTimeout ->
-        Repo.display_with_filtered_commits Repo.commits.filter (commit) -> 
-          commit.timestamp >= current[0] and commit.timestamp <= current[1] 
-      , 500
+        Repo.display_with_filtered_commits Repo.commits.filter (commit) ->
+          commit.timestamp >= current[0] and commit.timestamp <= current[1]
+      , 50
 
   ls.on 'mousedown', -> ls_down = true
   rs.on 'mousedown', -> rs_down = true
@@ -146,9 +135,15 @@ window.Repo =
     Repo.commits = Repo.commits.concat(commit)
     Repo.render_timeline()
 
-    Repo.parsedFiles++
-    console.log Repo.parsedFiles
-    if(Repo.parsedFiles == Repo.num_commits)
+    Repo.parsed_files++
+    Repo.progress_text.text("Loaded #{Repo.parsed_files} of #{Repo.num_commits}")
+    Repo.progress_bar.css("width", Repo.parsed_files / Repo.num_commits * 100+"%")
+    # debugger if Repo.parsed_files > 10
+    if(Repo.parsed_files == Repo.num_commits)
+      Repo.pure_form.show()
+      Repo.progress_bar.hide()
+      Repo.progress_text.hide()
+      Repo.progress_container.hide()
       Repo.render_barchart()
 
   render_barchart: ->
@@ -159,11 +154,20 @@ window.Repo =
     Repo.set_labels()
 
   render_timeline: ->
-    timeline_chart.render_timeline_chart Repo.commits.sort(timeline_chart.sort_timestamp_asc)
+    timeline_chart.render Repo.commits.sort(timeline_chart.sort_timestamp_asc)
 
   init: (commits) ->
     Repo.num_commits = commits.length
-    Repo.parsedFiles = 0
+    Repo.parsed_files = 0
+    Repo.pure_form = $(".pure-form")
+    Repo.progress_container = $("#progress-container")
+    Repo.progress_text = $("#progress-text")
+    Repo.progress_bar = $("#progress-bar")
+    Repo.progress_container.show()
+    Repo.progress_text.show()
+    Repo.progress_bar.show()
+    Repo.pure_form.hide()
+
     for commit in commits
       if commit.files?
         Repo.parse_commit(commit)
@@ -171,7 +175,7 @@ window.Repo =
         $.getJSON window.location.origin + "/commits/#{commit.id}.json", Repo.parse_commit
     Repo.render_timeline() if Object.keys(Repo.commits).length > 0
 
-    timeline_chart.render_timeline_chart Repo.commits
+    timeline_chart.render Repo.commits
     Repo.add_files commit.files
     Repo.calculate_files_of commit
     Repo.timestamp_to_d3 commit
@@ -375,7 +379,7 @@ window.Repo =
 
 $.getJSON Repo.url, Repo.init
 window.t = timeline_chart
-$(window).resize -> 
+$(window).resize ->
   timeline_chart.recalculate()
   Repo.render_timeline()
 f = $('#filter')
