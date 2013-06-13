@@ -6,7 +6,7 @@ Number.prototype.clip = (min, max) -> Math.min(max, Math.max(min, this))
 window.timeline_chart = do ->
   t = {}
   t.recalculate = ->
-    t.width = window.innerWidth
+    t.width = $("timeline").width()
     t.rx = d3.scale.linear().domain([0, t.width])
     t.x = d3.scale.linear().range([0, t.width])
   t.get_timestamp = (commit) -> commit.timestamp
@@ -93,7 +93,8 @@ do ->
   $highlight = $("#highlight")
   rs_down    = ls_down = false
   width      = $("#timeline").width()
-
+  current = []
+  timeout = false
   moved = (e) ->
     x = e.pageX - 10
     if ls_down
@@ -104,6 +105,14 @@ do ->
       x = x.clip(ls.offset().left + 23, width - 21)
       $highlight.css right: width - x
       rs.css          left: x
+    temp = [ls.offset().left || 0 , rs.offset().left]
+    if not _.isEqual(current, temp) 
+      current = temp
+      clearTimeout(timeout)
+      timeout = setTimeout -> 
+        Repo.display_with_filtered_commits Repo.commits.filter (commit) -> 
+          commit.timestamp >= current[0] and commit.timestamp <= current[1] 
+      , 50
 
   ls.on 'mousedown', -> ls_down = true
   rs.on 'mousedown', -> rs_down = true
