@@ -136,14 +136,15 @@ window.Repo =
     Repo.render_timeline()
 
     Repo.parsed_files++
-    Repo.progress_text.text("Loaded #{Repo.parsed_files} of #{Repo.num_commits}")
-    Repo.progress_bar.css("width", Repo.parsed_files / Repo.num_commits * 100+"%")
-    # debugger if Repo.parsed_files > 10
-    if(Repo.parsed_files == Repo.num_commits)
-      Repo.pure_form.show()
-      Repo.progress_bar.hide()
-      Repo.progress_text.hide()
-      Repo.progress_container.hide()
+
+    $("#filter").hide()
+    Repo.$progress.css display: 'inline-block'
+    Repo.$progress.find('.text').text("#{Repo.parsed_files} of #{Repo.num_commits}")
+    Repo.$progress.find('.bar').css 'width', Repo.parsed_files / Repo.num_commits * 100 + "%"
+
+    if Repo.parsed_files is Repo.num_commits
+      Repo.$progress.hide()
+      $("#filter").show()
       Repo.render_barchart()
 
   render_barchart: ->
@@ -159,20 +160,14 @@ window.Repo =
   init: (commits) ->
     Repo.num_commits = commits.length
     Repo.parsed_files = 0
-    Repo.pure_form = $(".pure-form")
-    Repo.progress_container = $("#progress-container")
-    Repo.progress_text = $("#progress-text")
-    Repo.progress_bar = $("#progress-bar")
-    Repo.progress_container.show()
-    Repo.progress_text.show()
-    Repo.progress_bar.show()
-    Repo.pure_form.hide()
+    Repo.$progress = $("#progress")
 
     for commit in commits
       if commit.files?
         Repo.parse_commit(commit)
       else
         $.getJSON window.location.origin + "/commits/#{commit.id}.json", Repo.parse_commit
+
     Repo.render_timeline() if Object.keys(Repo.commits).length > 0
 
     timeline_chart.render Repo.commits
@@ -186,6 +181,7 @@ window.Repo =
 
     if(Repo.parsed_commits == Repo.commits.length)
       Repo.render_charts()
+
   render_charts: ->
     Repo.format_files()
     Repo.draw()
