@@ -7,11 +7,21 @@
 </head>
 <body>
   <header>
-    <% if session[:access_token] %>
-      <%= link_to "logout", "/signout" %>
-    <% else %>
-      <%= link_to "log in via github", "/signin" %>
-    <% end %>
+    <div id="left">
+      <% if request.path != '/' %>
+        <%= link_to "Home", '/' %>
+      <% end %>
+    </div>
+    <div id="right">
+      <% if session[:access_token] %>
+        <span id="user">
+          Hello, <%= @user["name"] %> (<%= link_to @user["login"], @user["url"] %>)
+        </span>
+        <span id="logout"> <%= link_to "logout", "/signout" %> </span>
+      <% else %>
+        <%= link_to "log in via github", "/signin" %>
+      <% end %>
+    </div>
   </header>
   <section id="content">
     <%= yield %>

@@ -1,4 +1,5 @@
 class CommitsController < ApplicationController
+  skip_before_filter :store_target_url, only: [:show]
   respond_to :json, :html
 
   def index

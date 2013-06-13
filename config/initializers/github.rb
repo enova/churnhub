@@ -30,5 +30,10 @@ module Churnhub
         end
       }
     end
+
+    def self.user_details token
+      user = Octokit::Client.new(oauth_token: token).get('/user').slice "name", "login"
+      user.merge url: "https://github.com/#{user[:login]}"
+    end
   end
 end

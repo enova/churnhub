@@ -1,5 +1,6 @@
 class RepositoriesController < ApplicationController
   respond_to :json, :html
+
   def index
     @repository   = Repository.new
     @repositories = Repository.all
