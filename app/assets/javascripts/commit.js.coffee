@@ -126,10 +126,12 @@ do ->
   $(document).on('mousemove', moved).on 'mouseup mouseenter', -> rs_down = ls_down = false
 
 settings =
-  width: 500
+  width: window.innerWidth
   height: 500
   duration: 500
   lineheight: 23
+  offset: 500
+  padding: 20
 
 
 window.Repo =
@@ -166,11 +168,9 @@ window.Repo =
       Repo.render_barchart()
 
   render_barchart: ->
-    console.log("render bar")
     Repo.format_files()
     Repo.draw()
     Repo.animate()
-    Repo.set_labels()
 
   render_timeline: ->
     timeline_chart.render Repo.commits.sort(timeline_chart.sort_timestamp_asc)
@@ -198,13 +198,7 @@ window.Repo =
     console.log("finished: " + Repo.parsed_commits)
 
     if(Repo.parsed_commits == Repo.commits.length)
-      Repo.render_charts()
-
-  render_charts: ->
-    Repo.format_files()
-    Repo.draw()
-    Repo.animate()
-    Repo.set_labels()
+      Repo.render_barchart()
 
   add_commits: (commits) ->
     Repo.parsed_commits = 0
@@ -253,6 +247,7 @@ window.Repo =
     additions = Repo.chart.selectAll("g").data(Repo.formated_files).append("rect")
       .attr
         class: 'additions'
+        x: settings.offset
         y:     (f, i) -> i * settings.lineheight
         width: 0
         height: settings.lineheight - 3
@@ -260,7 +255,7 @@ window.Repo =
     deletions = Repo.chart.selectAll("g").data(Repo.formated_files).append("rect")
       .attr
         class: 'deletions'
-        x:0
+        x: settings.offset
         y:     (f, i) -> i * settings.lineheight
         height: 20
         width: 0
@@ -268,30 +263,26 @@ window.Repo =
     bar_labels = Repo.chart.selectAll("g").data(Repo.formated_files).append("text")
       .text((f, i) -> f[3]).attr
         class: "bar-label"
-        x: 5
+        x: settings.offset + 5
         y: (f, i) -> i * settings.lineheight + 17
         style: (f, i) -> "fill: " + (if f[3] is 0 then "#555" else "#fff")
 
+    bar_name_labels = Repo.chart.selectAll("g").data(Repo.formated_files).append("text")
+      .text((f, i) -> f[0]).attr
+        class: "bar-name-label"
+        x: settings.offset - settings.padding
+        width: settings.offset
+        y: (f, i) -> i * settings.lineheight + 17     
+        style: (f, i) -> "fill: #333"
 
-  set_labels: ->
-    labels = Repo.label_chart.selectAll("div").data(Repo.prepared_files)
-      .text( (a) -> a[0])
-    labels.enter()
-      .append("div")
-      .text( (a) -> a[0])
-      .attr
-        y:     (f, i) -> (i) * settings.lineheight + 15
-        class: "file-names"
-    labels.exit().remove()
-
-  animate: ->
-    scale = d3.scale.log().base(10).domain([0.1, d3.max(Repo.formated_files, (d)-> d[3] )]).range([0, settings.width])
+  animate: -> #called after the original draw function and will animate everything into place.
+    scale = d3.scale.log().base(10).domain([0.1, d3.max(Repo.formated_files, (d)-> d[3] )]).range([0, settings.width - settings.offset - 2 * settings.padding])
     Repo.chart.selectAll("rect.deletions")
       
       .transition(settings.duration)
       .delay((d, i) -> (i / Repo.formated_files.length * settings.duration) )
       .attr
-        x: (f) -> if f[3] is 0 then 0 else scale(f[3])*f[1]/f[3]
+        x: (f) -> if f[3] is 0 then settings.offset else (scale(f[3])*f[1]/f[3] + settings.offset)
         width: (f, i) -> if f[3] is 0 then 0 else scale(f[3])*f[2]/f[3]
 
     Repo.chart.selectAll("rect.additions")
@@ -334,48 +325,67 @@ window.Repo =
       .attr
         y: (f, i) -> Repo.find_index_of(f[0], Repo.prepared_files)* settings.lineheight + 17
 
-  filter: (text) ->
-    Repo.temp_filtered = []
-    for i in [0...Repo.prepared_files.length] by 1
-      if Repo.prepared_files[i][0].indexOf text != -1
-        Repo.temp_filtered.push(Repo.prepared_files[i])
-    console.log(Repo.prepared_files)
-    Repo.prepared_files = temp_filtered
-    Repo.move_to_new_position()
-    Repo.set_labels()
+    Repo.chart.selectAll("text.bar-name-label")
+      .attr
+        visibility: (f) -> if Repo.find_index_of(f[0], Repo.prepared_files) is -1 then "hidden" else ""
+    Repo.chart.selectAll("text.bar-name-label")
+      .transition(settings.duration)
+      .attr
+        y: (f, i) -> Repo.find_index_of(f[0], Repo.prepared_files)* settings.lineheight + 17
+
+  filter: (text, array) ->
+    temp_filtered = []
+    for i in [0...array.length] by 1
+      if array[i][0].indexOf(text) != -1
+        temp_filtered.push(array[i])
+    return temp_filtered
 
   correct_object: (f) -> 
     index = Repo.find_index_of(f[0], Repo.prepared_files)
 
-    console.log(index + " " + f[0])
+    #console.log(index + " " + f[0])
     return Repo.prepared_files[index]
 
   display_with_filtered_commits: (filtered_commits) ->
-    scale = d3.scale.log().base(10).domain([0.1, d3.max(Repo.formated_files, (d)-> d[3] )]).range([0, settings.width])
+    Repo.filtered_commits = filtered_commits
+    Repo.display_with_filtered_commits_and_text_filter(f.val())
+    console.log(f.val())
 
-    console.log("asdf" + filtered_commits)
+  display_with_filtered_commits_and_text_filter: (text) ->
+    scale = d3.scale.log().base(10).domain([0.1, d3.max(Repo.formated_files, (d)-> d[3] )]).range([0, settings.width - settings.offset - 2 * settings.padding])
     Repo.files = []
-    for commit in filtered_commits
+    for commit in Repo.filtered_commits
       for file in commit.files
         name = file[0]
         Repo.files[name]   or= [0, 0]
         Repo.files[name][0] += file[1]
         Repo.files[name][1] += file[2]
-    console.log(Repo.files)
     temp_files = ([name, f[0], f[1], f[0]+f[1]] for name, f of Repo.files)
-    Repo.prepared_files = temp_files.sort (a,b) -> (b[3] - a[3])
-    console.log(Repo.prepared_files)
+
+    console.log(Repo.prepared_files.length)
+    Repo.prepared_files = Repo.filter(text, temp_files)
+    console.log(Repo.prepared_files.length)
+
+    Repo.prepared_files = Repo.prepared_files.sort (a,b) -> (b[3] - a[3])
+    
     Repo.move_to_new_position()
 
-    console.log(Repo.correct_object(Repo.prepared_files[1]))
+   
+
+    Repo.chart.selectAll("text.bar-label")
+      .text (f) -> 
+        file = Repo.correct_object(f)
+        return 0 if file is undefined
+        f[3]
+
     Repo.chart.selectAll("rect.deletions")
       .transition(settings.duration)
       .delay((d, i) -> (settings.duration))
       .attr
         x: (f, i) -> 
           file = Repo.correct_object(f)
-          return 0 if file is undefined
-          if file[3] is 0 then 0 else scale(file[3])*file[1]/file[3]
+          return settings.offset if file is undefined
+          if file[3] is 0 then settings.offset else scale(file[3])*file[1]/file[3] + settings.offset
         width: (f, i) -> 
           file = Repo.correct_object(f)
           return 0 if file is undefined
@@ -387,9 +397,12 @@ window.Repo =
       .attr
         width: (f, i) -> 
           file = Repo.correct_object(f)
-          return 0 if file is undefined
+          return settings.offset if file is undefined
           if file[3] is 0 then 0 else scale(file[3])*file[1]/file[3]
 
+    Repo.chart.attr
+      height: Repo.prepared_files.length * 23
+  
 
 $.getJSON Repo.url, Repo.init
 window.t = timeline_chart
@@ -397,9 +410,10 @@ $(window).resize ->
   timeline_chart.recalculate()
   Repo.render_timeline()
 f = $('#filter')
+
 filter = () ->
   a = f.val()
-  window.Repo.filter(a)
-  window.Repo.move_to_new_position()
+  console.log(a)
+  window.Repo.display_with_filtered_commits_and_text_filter(a)
 
 f.on("input",filter)
