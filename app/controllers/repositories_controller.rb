@@ -1,8 +1,6 @@
 class RepositoriesController < ApplicationController
   respond_to :json, :html
   def index
-    redirect_to '/signin' unless session[:access_token]
-
     @repository   = Repository.new
     @repositories = Repository.all
   end

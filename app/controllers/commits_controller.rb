@@ -5,6 +5,10 @@ class CommitsController < ApplicationController
     params.reverse_merge! start: 1.year.ago, finish: Date.today
 
     @repository = Repository.with_url params[:url]
+    if !session[:access_token] && (@repository.host == 'github.com')
+      redirect_to '/signin' and return
+    end
+
     @repository.fetch_commits_from_github session[:access_token], params[:start], params[:finish]
     @commits    = @repository.commits
 
