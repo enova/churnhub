@@ -4,8 +4,8 @@ class window.Timeline
     @height = @$el.height()
     @x      = d3.scale.linear().range([0, @width])
     @rx     = d3.scale.linear().domain([0, @width])
-    @y      = d3.scale.linear().range([@height, 0])
-    @ry     = d3.scale.linear().domain([@height, 0])
+    @y      = d3.scale.pow().exponent(.3).range([@height, 0])
+    @ry     = d3.scale.linear().range([@height, 0])
 
   get_timestamp:            (commit) -> commit.timestamp
   get_aggregated_additions: (commit) -> commit.aggregated_additions or 0
@@ -226,7 +226,6 @@ window.Repo =
   draw: ->
     Repo.chart.attr
       height: Repo.formated_files.length * 23
-    textscale   = d3.scale.linear().domain([0, d3.max(Repo.formated_files, (d)-> d[3] )]).range([0, 100])
 
     Repo.sort_files()
     changes = Repo.chart.selectAll("rect").data(Repo.formated_files).enter().append("g").attr("class", "changes")
@@ -265,7 +264,7 @@ window.Repo =
         style: (f, i) -> "fill: #333"
 
   animate: -> #called after the original draw function and will animate everything into place.
-    scale = d3.scale.log().base(10).domain([0.1, d3.max(Repo.formated_files, (d)-> d[3] )]).range([0, settings.width - settings.offset - 2 * settings.padding])
+    scale = d3.scale.pow().exponent(.5).domain([0.1, d3.max(Repo.formated_files, (d)-> d[3] )]).range([0, settings.width - settings.offset - 2 * settings.padding])
     Repo.chart.selectAll("rect.deletions")
       
       .transition(settings.duration)
@@ -331,8 +330,6 @@ window.Repo =
 
   correct_object: (f) -> 
     index = Repo.find_index_of(f[0], Repo.prepared_files)
-
-    #console.log(index + " " + f[0])
     return Repo.prepared_files[index]
 
   display_with_filtered_commits: (filtered_commits) ->
@@ -351,10 +348,8 @@ window.Repo =
 
   display_with_filtered_commits_and_text_filter: (text) ->
 
-    scale = d3.scale.log().base(10).domain([0.1, d3.max(Repo.formated_files, (d)-> d[3] )]).range([0, settings.width - settings.offset - 2 * settings.padding])
-    console.log(Repo.saved_files)
+    scale = d3.scale.pow().exponent(.5).domain([0.1, d3.max(Repo.formated_files, (d)-> d[3] )]).range([0, settings.width - settings.offset - 2 * settings.padding])
     Repo.prepared_files = Repo.filter(text, Repo.saved_files)
-    console.log(Repo.prepared_files)
 
     Repo.prepared_files = Repo.prepared_files.sort (a,b) -> (b[3] - a[3])
     
