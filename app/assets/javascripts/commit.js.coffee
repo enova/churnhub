@@ -336,31 +336,30 @@ window.Repo =
     return Repo.prepared_files[index]
 
   display_with_filtered_commits: (filtered_commits) ->
-    Repo.filtered_commits = filtered_commits
-    Repo.display_with_filtered_commits_and_text_filter(f.val())
-    console.log(f.val())
-
-  display_with_filtered_commits_and_text_filter: (text) ->
-    scale = d3.scale.log().base(10).domain([0.1, d3.max(Repo.formated_files, (d)-> d[3] )]).range([0, settings.width - settings.offset - 2 * settings.padding])
     Repo.files = []
-    for commit in Repo.filtered_commits
+    for commit in filtered_commits
       for file in commit.files
         name = file[0]
         Repo.files[name]   or= [0, 0]
         Repo.files[name][0] += file[1]
         Repo.files[name][1] += file[2]
-    temp_files = ([name, f[0], f[1], f[0]+f[1]] for name, f of Repo.files)
+    temp_files = ([name, fi[0], fi[1], fi[0]+fi[1]] for name, fi of Repo.files)
+    Repo.saved_files = temp_files
 
-    console.log(Repo.prepared_files.length)
-    Repo.prepared_files = Repo.filter(text, temp_files)
-    console.log(Repo.prepared_files.length)
+    Repo.display_with_filtered_commits_and_text_filter(f.val())
+
+
+  display_with_filtered_commits_and_text_filter: (text) ->
+
+    scale = d3.scale.log().base(10).domain([0.1, d3.max(Repo.formated_files, (d)-> d[3] )]).range([0, settings.width - settings.offset - 2 * settings.padding])
+    console.log(Repo.saved_files)
+    Repo.prepared_files = Repo.filter(text, Repo.saved_files)
+    console.log(Repo.prepared_files)
 
     Repo.prepared_files = Repo.prepared_files.sort (a,b) -> (b[3] - a[3])
     
     Repo.move_to_new_position()
-
    
-
     Repo.chart.selectAll("text.bar-label")
       .text (f) -> 
         file = Repo.correct_object(f)
