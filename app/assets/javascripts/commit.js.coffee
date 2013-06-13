@@ -126,7 +126,7 @@ settings =
   height: 500
   duration: 500
   lineheight: 23
-  offset: 500
+  offset: window.innerWidth * .3
   padding: 20
 
 
