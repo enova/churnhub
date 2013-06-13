@@ -43,6 +43,7 @@ class window.Timeline
     @area = d3.svg.area().x((d) => @x d.x).y0((d) => @y d.y0).y1((d) => @y d.y + d.y0)
 
     @get_timestamp_range = (min_screen_x, max_screen_x) =>
+      return false if not @filtered_commits?
       a = Math.floor @rx(min_screen_x)
       b = Math.ceil  @rx(max_screen_x)
       [@filtered_commits[a].timestamp, @filtered_commits[b].timestamp]
@@ -193,13 +194,6 @@ window.Repo =
     Repo.calculate_files_of commit
     Repo.timestamp_to_d3 commit
 
-
-    Repo.parsed_commits++
-    console.log("finished: " + Repo.parsed_commits)
-
-    if(Repo.parsed_commits == Repo.commits.length)
-      Repo.render_barchart()
-
   add_commits: (commits) ->
     Repo.parsed_commits = 0
     for commit in Repo.commits
@@ -214,8 +208,8 @@ window.Repo =
 
 
   timestamp_to_d3: (commit) ->
-    debugger if !commit? or !commit.timestamp?
-    commit.timestamp = d3.time.format("%Y-%m-%dT%XZ").parse(commit.timestamp)
+    commit.timestamp = d3.time.format("%Y-%m-%dT%XZ").parse(commit.timestamp) if typeof commit.timestamp is "string"
+
   calculate_files_of: (commit) ->
     commit.aggregated_additions = d3.sum(commit.files, (file)-> file[1])
     commit.aggregated_deletions = d3.sum(commit.files, (file)-> file[2])
