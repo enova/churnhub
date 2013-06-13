@@ -72,16 +72,16 @@ class window.Timeline
 
       c = @svg.selectAll(".point").data(filtered_commits)
       c.enter()
-        .append("g")
-        .attr("class", "point")
-        .append("circle")
-        .attr
-          class: "deletions"
-          r: 5
-          cx: (d) =>
-            @x d.pos
-          cy: (d) =>
-            @y @get_aggregated_deletions(d) + @get_aggregated_additions(d)
+        # .append("g")
+        # .attr("class", "point")
+        # .append("circle")
+        # .attr
+        #   class: "deletions"
+        #   r: 5
+        #   cx: (d) =>
+        #     @x d.pos
+        #   cy: (d) =>
+        #     @y @get_aggregated_deletions(d) + @get_aggregated_additions(d)
         .append("title")
         .text (d) -> d.timestamp
       c.exit().remove()
