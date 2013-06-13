@@ -1,6 +1,7 @@
 #= require d3
 #= require underscore
-#Array.prototype.inject = (init, fn) -> this.reduce(fn, init)
+
+Number.prototype.clip = (min, max) -> Math.min(max, Math.max(min, this))
 
 window.timeline_chart = do ->
   t = {}
@@ -11,8 +12,8 @@ window.timeline_chart = do ->
   t.get_timestamp = (commit) -> commit.timestamp
   t.get_aggregated_additions = (commit) -> commit.aggregated_additions or 0
   t.get_aggregated_deletions = (commit) -> commit.aggregated_deletions or 0
-  t.width = window.innerWidth
-  t.height = 100
+  t.width  = $("#timeline").width()
+  t.height = $("#timeline").height()
   t.parse_date = d3.time.format("%Y-%m-%dT%XZ").parse
   t.rx = d3.scale.linear().domain([0, t.width])
   t.x = d3.scale.linear().range([0, t.width])
@@ -42,7 +43,6 @@ window.timeline_chart = do ->
       class: "timeline_chart_svg"
       width: t.width
       height: t.height
-
   t.render_timeline_chart = (filtered_commits) ->
     for i in [0 .. filtered_commits.length-1]
       filtered_commits[i].pos = i if filtered_commits[i]?
@@ -87,41 +87,34 @@ window.timeline_chart = do ->
   return t
 
 do ->
-  ls = $('.left.slider')
-  rs = $('.right.slider')
-  max_width = $('#timeline>svg').innerWidth()
-  min_width = 0
-  ls_down = false
-  rs_down = false
-  current_range = []
-  down = (e)->
-    ls_down = true if (e.data is ls)
-    rs_down = true if (e.data is rs)
 
-  up = (e)->
-    ls_down = false
-    rs_down = false
-    temp = timeline_chart.get_timestamp_range((parseInt ls.css("left")) or 0, parseInt rs.css("left") or max_width)
-    if not (_.isEqual(current_range,temp)) 
-      current_range = temp
-      Repo.display_with_filtered_commits Repo.commits.filter (commit) -> 
-        commit.timestamp >= temp[0] and commit.timestamp <= temp[1]
-      
+  ls         = $('.left.slider')
+  rs         = $('.right.slider')
+  $highlight = $("#highlight")
+  rs_down    = ls_down = false
+  width      = $("#timeline").width()
 
   moved = (e) ->
-    current_rs_left = parseInt rs.css("left") or 0
-    current_ls_left = parseInt ls.css("left") or max_width
-    ls.css("left", if (e.pageX > max_width) then max_width - 2.5 else e.pageX - 2.5 ) if ls_down and e.pageX+5 < current_rs_left and current_ls_left < max_width and current_ls_left > min_width
-    rs.css("left", if (e.pageX > max_width) then max_width - 2.5 else e.pageX - 2.5 ) if rs_down and e.pageX-5 > current_ls_left and current_rs_left < max_width and current_rs_left > min_width
-  ls.on 'mousedown', ls, down
-  rs.on 'mousedown', rs, down
-  $(document).on('mouseup', up).on('mousemove', moved).on('mouseleave', up).on('mouseenter', up)
+    x = e.pageX - 10
+    if ls_down
+      x = x.clip(0, rs.offset().left - 23)
+      $highlight.css left: x + 21
+      ls.css         left: x
+    if rs_down
+      x = x.clip(ls.offset().left + 23, width - 21)
+      $highlight.css right: width - x
+      rs.css          left: x
 
+  ls.on 'mousedown', -> ls_down = true
+  rs.on 'mousedown', -> rs_down = true
+
+  $(document).on('mousemove', moved).on 'mouseup mouseenter', -> rs_down = ls_down = false
 
 settings =
   width: 500
   height: 500
   duration: 500
+  lineheight: 23
 
 window.Repo =
   chart: d3.select("#graph_chart").append("svg").attr
@@ -234,15 +227,15 @@ window.Repo =
     additions = Repo.chart.selectAll("g").data(Repo.formated_files).append("rect")
       .attr
         class: 'additions'
-        y:     (f, i) -> i * 23
+        y:     (f, i) -> i * settings.lineheight
         width: 0
-        height: 20
+        height: settings.lineheight - 3
 
     deletions = Repo.chart.selectAll("g").data(Repo.formated_files).append("rect")
       .attr
         class: 'deletions'
         x:0
-        y:     (f, i) -> i * 23
+        y:     (f, i) -> i * settings.lineheight
         height: 20
         width: 0
 
@@ -250,7 +243,7 @@ window.Repo =
       .text((f, i) -> f[3]).attr
         class: "bar-label"
         x: 5
-        y: (f, i) -> i * 23 + 17
+        y: (f, i) -> i * settings.lineheight + 17
         style: (f, i) -> "fill: " + (if f[3] is 0 then "#555" else "#fff")
 
 
@@ -261,7 +254,7 @@ window.Repo =
       .append("div")
       .text( (a) -> a[0])
       .attr
-        y:     (f, i) -> (i) * 23 + 15
+        y:     (f, i) -> (i) * settings.lineheight + 15
         class: "file-names"
     labels.exit().remove()
 
@@ -315,17 +308,17 @@ window.Repo =
     Repo.chart.selectAll("rect.deletions")
       .transition()
       .attr
-        y: (f, i) -> Repo.find_index_of(Repo.chart.selectAll("rect.deletions")[0][i].__data__[0], Repo.prepared_files)  * 23
+        y: (f, i) -> Repo.find_index_of(f[0], Repo.prepared_files)* settings.lineheight
 
     Repo.chart.selectAll("rect.additions")
       .transition()
       .attr
-        y: (f, i) -> Repo.find_index_of(Repo.chart.selectAll("rect.deletions")[0][i].__data__[0], Repo.prepared_files)  * 23
+        y: (f, i) -> Repo.find_index_of(f[0], Repo.prepared_files)* settings.lineheight
 
     Repo.chart.selectAll("text.bar-label")
       .transition()
       .attr
-        y: (f, i) -> Repo.find_index_of(Repo.chart.selectAll("rect.deletions")[0][i].__data__[0], Repo.prepared_files)  * 23 + 17
+        y: (f, i) -> Repo.find_index_of(f[0], Repo.prepared_files)* settings.lineheight + 17
 
   filter: (text) ->
     Repo.prepared_files = []
@@ -337,15 +330,31 @@ window.Repo =
     Repo.set_labels()
 
   display_with_filtered_commits: (filtered_commits) ->
-    Repo.files = {}
+    temp_files_accumilator = []
     for commit in filtered_commits
       for file in commit.files
         name = file[0]
         Repo.files[name]   or= [0, 0]
         Repo.files[name][0] += file[1]
         Repo.files[name][1] += file[2]
-    Repo.format_files()
-    #filter("")
+    temp_files = ([name, f[0], f[1], f[0]+f[1]] for name, f of temp_files_accumilator)
+    Repo.prepared_files = temp_files.sort (a,b) -> (b[3] - a[3])
+    move_to_new_position()
+
+    correct_object: (i) -> return Repo.prepared_files[Repo.prepared_files[Repo.find_index_of(f[0], Repo.prepared_files)]]
+    Repo.chart.selectAll("rect.deletions")
+      .transition(settings.duration)
+      .delay((d, i) -> (i / Repo.prepared_files.length * settings.duration) )
+      .attr
+        x: (f, i) -> if correct_object(i)[3] is 0 then 0 else scale(correct_object(i)[3])*correct_object(i)[1]/correct_object(i)[3]
+        width: (f, i) -> if correct_object(i)[3] is 0 then 0 else scale(correct_object(i)[3])*correct_object(i)[2]/correct_object(i)[3]
+
+    Repo.chart.selectAll("rect.additions")
+      .transition(settings.duration)
+      .delay((d, i) -> (i / Repo.formated_files.length * settings.duration))
+      .attr
+        width: (f, i) -> if correct_object(i)[3] is 0 then 0 else scale(correct_object(i)[3])*correct_object(i)[1]/correct_object(i)[3]
+
     Repo.animate2()
 
 $.getJSON Repo.url, Repo.init
