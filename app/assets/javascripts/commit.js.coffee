@@ -17,7 +17,7 @@ window.timeline_chart = do ->
   t.parse_date = d3.time.format("%Y-%m-%dT%XZ").parse
   t.rx = d3.scale.linear().domain([0, t.width])
   t.x = d3.scale.linear().range([0, t.width])
-  t.y = d3.scale.linear().range([t.height, 0])
+  t.y = d3.scale.log().range([t.height, 0])
   t.stack = d3.layout.stack().offset("zero")
   t.layer = (commits) -> t.stack [({x: commit.pos, y: t.get_aggregated_additions(commit), y0: 0} for commit in commits), ({x: commit.pos, y: t.get_aggregated_deletions(commit), y0: t.get_aggregated_additions} for commit in commits)]
   t.area = d3.svg.area().x((d) ->
@@ -49,7 +49,7 @@ window.timeline_chart = do ->
     t.svg.selectAll("path").remove()
     t.svg.selectAll("g").remove()
     t.x.domain [0 , filtered_commits.length]
-    t.y.domain [0, d3.max(filtered_commits, t.summed_additions_deletions)]
+    t.y.domain [0.1, d3.max(filtered_commits, t.summed_additions_deletions)]
     t.rx.range [0 , filtered_commits.length-1]
     a = t.svg.selectAll(".area").data(t.layer filtered_commits)
 
@@ -111,7 +111,7 @@ do ->
       timeout = setTimeout ->
         Repo.display_with_filtered_commits Repo.commits.filter (commit) -> 
           commit.timestamp >= current[0] and commit.timestamp <= current[1] 
-      , 50
+      , 500
 
   ls.on 'mousedown', -> ls_down = true
   rs.on 'mousedown', -> rs_down = true
@@ -123,6 +123,7 @@ settings =
   height: 500
   duration: 500
   lineheight: 23
+
 
 window.Repo =
   chart: d3.select("#graph_chart").append("svg").attr
@@ -186,7 +187,6 @@ window.Repo =
     Repo.draw()
     Repo.animate()
     Repo.set_labels()
-
 
   add_commits: (commits) ->
     Repo.parsed_commits = 0
@@ -267,8 +267,9 @@ window.Repo =
     labels.exit().remove()
 
   animate: ->
-    scale   = d3.scale.log().base(10).domain([0.1, d3.max(Repo.formated_files, (d)-> d[3] )]).range([0, settings.width])
+    scale = d3.scale.log().base(10).domain([0.1, d3.max(Repo.formated_files, (d)-> d[3] )]).range([0, settings.width])
     Repo.chart.selectAll("rect.deletions")
+      
       .transition(settings.duration)
       .delay((d, i) -> (i / Repo.formated_files.length * settings.duration) )
       .attr
@@ -276,33 +277,11 @@ window.Repo =
         width: (f, i) -> if f[3] is 0 then 0 else scale(f[3])*f[2]/f[3]
 
     Repo.chart.selectAll("rect.additions")
+      
       .transition(settings.duration)
       .delay((d, i) -> (i / Repo.formated_files.length * settings.duration))
       .attr
         width: (f, i) -> if f[3] is 0 then 0 else scale(f[3])*f[1]/f[3]
-
-  #please leave this for now! I will be using this for scalling with the time line --Thomas
-  animate2: ->
-    scale   = d3.scale.log().base(10).domain([0.1, d3.max(Repo.formated_files, (d)-> d[3] )]).range([0, settings.width])
-    Repo.chart.selectAll("rect").data(Repo.formated_files)
-    Repo.chart.selectAll("rect.deletions")
-      .transition(settings.duration)
-      .delay((d, i) -> (i / Repo.formated_files.length * settings.duration) )
-      .attr
-        x: (f) -> if f[3] is 0 then 0 else scale(f[3])*f[1]/f[3]
-        width: (f, i) -> if f[3] is 0 then 0 else scale(f[3])*f[2]/f[3]
-
-    Repo.chart.selectAll("rect.additions")
-      .transition(settings.duration)
-      .delay((d, i) -> (i / Repo.formated_files.length * settings.duration))
-      .attr
-        width: (f, i) -> if f[3] is 0 then 0 else scale(f[3])*f[1]/f[3]
-
-
-    # Repo.sort_files()
-    # Repo.timer = setTimeout (->
-    #   Repo.move_to_new_position()
-    # ), settings.duration*2
 
   find_index_of: (name, files_array) ->
     for i in [0...files_array.length] by 1
@@ -312,58 +291,87 @@ window.Repo =
 
   move_to_new_position: ->
     #Repo.prepared_files.indexOf(Repo.chart.selectAll("rect.deletions")[0][i].__data__) * 23
-
     Repo.chart.selectAll("rect.deletions")
-      .transition()
+      .attr
+        visibility: (f) -> if Repo.find_index_of(f[0], Repo.prepared_files) is -1 then "hidden" else ""
+    Repo.chart.selectAll("rect.deletions")
+      .transition(settings.duration)
       .attr
         y: (f, i) -> Repo.find_index_of(f[0], Repo.prepared_files)* settings.lineheight
 
+
     Repo.chart.selectAll("rect.additions")
-      .transition()
+      .attr
+        visibility: (f) -> if Repo.find_index_of(f[0], Repo.prepared_files) is -1 then "hidden" else ""
+    Repo.chart.selectAll("rect.additions")
+      .transition(settings.duration)
       .attr
         y: (f, i) -> Repo.find_index_of(f[0], Repo.prepared_files)* settings.lineheight
 
     Repo.chart.selectAll("text.bar-label")
-      .transition()
+      .attr
+        visibility: (f) -> if Repo.find_index_of(f[0], Repo.prepared_files) is -1 then "hidden" else ""
+    Repo.chart.selectAll("text.bar-label")
+      .transition(settings.duration)
       .attr
         y: (f, i) -> Repo.find_index_of(f[0], Repo.prepared_files)* settings.lineheight + 17
 
   filter: (text) ->
-    Repo.prepared_files = []
-    for i in [0...Repo.formated_files.length] by 1
-      if(Repo.formated_files[i][0].indexOf(text) != -1)
-        Repo.prepared_files.push(Repo.formated_files[i])
+    Repo.temp_filtered = []
+    for i in [0...Repo.prepared_files.length] by 1
+      if Repo.prepared_files[i][0].indexOf text != -1
+        Repo.temp_filtered.push(Repo.prepared_files[i])
     console.log(Repo.prepared_files)
+    Repo.prepared_files = temp_filtered
     Repo.move_to_new_position()
     Repo.set_labels()
 
+  correct_object: (f) -> 
+    index = Repo.find_index_of(f[0], Repo.prepared_files)
+
+    console.log(index + " " + f[0])
+    return Repo.prepared_files[index]
+
   display_with_filtered_commits: (filtered_commits) ->
-    temp_files_accumilator = []
+    scale = d3.scale.log().base(10).domain([0.1, d3.max(Repo.formated_files, (d)-> d[3] )]).range([0, settings.width])
+
+    console.log("asdf" + filtered_commits)
+    Repo.files = []
     for commit in filtered_commits
       for file in commit.files
         name = file[0]
         Repo.files[name]   or= [0, 0]
         Repo.files[name][0] += file[1]
         Repo.files[name][1] += file[2]
-    temp_files = ([name, f[0], f[1], f[0]+f[1]] for name, f of temp_files_accumilator)
+    console.log(Repo.files)
+    temp_files = ([name, f[0], f[1], f[0]+f[1]] for name, f of Repo.files)
     Repo.prepared_files = temp_files.sort (a,b) -> (b[3] - a[3])
-    move_to_new_position()
+    console.log(Repo.prepared_files)
+    Repo.move_to_new_position()
 
-    correct_object: (i) -> return Repo.prepared_files[Repo.prepared_files[Repo.find_index_of(f[0], Repo.prepared_files)]]
+    console.log(Repo.correct_object(Repo.prepared_files[1]))
     Repo.chart.selectAll("rect.deletions")
       .transition(settings.duration)
-      .delay((d, i) -> (i / Repo.prepared_files.length * settings.duration) )
+      .delay((d, i) -> (settings.duration))
       .attr
-        x: (f, i) -> if correct_object(i)[3] is 0 then 0 else scale(correct_object(i)[3])*correct_object(i)[1]/correct_object(i)[3]
-        width: (f, i) -> if correct_object(i)[3] is 0 then 0 else scale(correct_object(i)[3])*correct_object(i)[2]/correct_object(i)[3]
+        x: (f, i) -> 
+          file = Repo.correct_object(f)
+          return 0 if file is undefined
+          if file[3] is 0 then 0 else scale(file[3])*file[1]/file[3]
+        width: (f, i) -> 
+          file = Repo.correct_object(f)
+          return 0 if file is undefined
+          if file[3] is 0 then 0 else scale(file[3])*file[2]/file[3]
 
     Repo.chart.selectAll("rect.additions")
       .transition(settings.duration)
-      .delay((d, i) -> (i / Repo.formated_files.length * settings.duration))
+      .delay((d, i) -> (settings.duration))
       .attr
-        width: (f, i) -> if correct_object(i)[3] is 0 then 0 else scale(correct_object(i)[3])*correct_object(i)[1]/correct_object(i)[3]
+        width: (f, i) -> 
+          file = Repo.correct_object(f)
+          return 0 if file is undefined
+          if file[3] is 0 then 0 else scale(file[3])*file[1]/file[3]
 
-    Repo.animate2()
 
 $.getJSON Repo.url, Repo.init
 window.t = timeline_chart
