@@ -17,16 +17,11 @@ class window.Timeline
   # Good place to put this? Jeff
   $x_position: $("#x-position")
   $y_position: $("#y-position")
-  tooltip_timeout: false
   draw_tooltip: (e) => 
-    clearTimeout(@tooltip_timeout)
     x = e.offsetX - 20
     y = e.offsetY
     @$y_position.text(Math.round(@ry(y)))
-    @tooltip_timeout = setTimeout =>
-      @$x_position.text(JSON.stringify(@filtered_commits[Math.round(@rx(x))]))
-      console.log @filtered_commits[Math.round(@rx(x))], Math.round(@ry(y))
-    , 50
+    @$x_position.text(JSON.stringify(@filtered_commits[Math.round(@rx(x))]))
 
   summed_additions_deletions: (d) => @get_aggregated_additions(d) + @get_aggregated_deletions(d)
 
