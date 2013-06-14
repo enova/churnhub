@@ -1,5 +1,16 @@
 body
-  -webkit-user-select: none
+  font-family: "Helvetica Neue"
+  font-weight: 200
+
+h1, h2, h3, h4, h5
+  font-weight: 200
+
+#graph_chart
+  box-shadow: inset 60px 0 30px -30px white
+  pointer-events: none
+  svg
+    position: relative
+    z-index: -1
 #grouped
   margin-bottom: 200px
   margin-top: 40px
@@ -21,9 +32,6 @@ body
   &:hover
     fill: rgba(255, 45, 45, 0.6)
 
-.changes:hover
-  &.additions
-
 .file-names
   margin-left: 10px
   overflow: hidden
@@ -32,29 +40,63 @@ body
   color: #555
   font-family: "Arial Rounded MT", "Helvetica Rounded", Arial, sans-serif
 
-#highlight
+#y-position
+  position: fixed
+  right: 10px
+  z-index: 10
+  bottom: 110px
+
+.tooltip
+  transition: left 0.4s
+  position: fixed
+  left: -100px
+  bottom: 110px
+  max-width: 80%
+  max-height: 100px
+  background-color: rgba(255,255,255, 0.9)
+  box-shadow: 1px 1px 30px rgba(0,0,0, 0.5), 1px 1px 5px rgba(0,0,0, 0.8)
+  border: 2px white solid
+  border-radius: 4px
+  overflow: hidden
+  padding: 5px
+  box-model: border-box
+
+
+#highlight, .lowlight
   z-index: -1
   position: absolute
   top: 0
+  bottom: 0
+.lowlight
+  background-color: rgba(205,220,220, 0.8)
+  width: 0
+  &.left
+    left: 0
+  &.right
+    right: 0
+#highlight
+  background-color: rgba(255,255,255, 0.8)
   left: 21px
   right: 2%
-  bottom: 0
-  background-color: rgba(0,20,20, 0.12)
 
 #timeline
+  cursor: crosshair
   border-top: 2px solid rgba(230,255,255, 0.8)
   height: 100px
   position: fixed
-  background-color: rgba(255,255,255, 0.95)
   box-shadow: 0 9px 10px 10px rgba(0,0,0, 0.5)
+
   bottom: 0
   right: 0
   left: 0
-  -webkit-user-select: none
-  -khtml-user-select: none
-  -moz-user-select: none
-  -o-user-select: none
-  user-select: none
+
+.timeline_chart
+  z-index: 100
+  position: relative
+  .additions
+    fill: rgba(115, 255, 115, 1)
+  .deletions
+    fill: rgba(255, 115, 115, 1)
 
 .slider
   position: fixed
@@ -67,13 +109,23 @@ body
   bottom: 0
   cursor: default
   left: 0
-  &.right 
+  &.right
     left: 98%
+
+#x-marker
+  width: 1px
+  height: 100px
+  position: fixed
+  bottom: 0
+  background-color: red
+  left: -10px
 
 .bar-label
   fill: #333
+
 .bar-name-label
   text-anchor: end
+
 #progress
   display: none
   border-radius: 4px

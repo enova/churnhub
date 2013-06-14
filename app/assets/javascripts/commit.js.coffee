@@ -1,3 +1,4 @@
+#= require helpers
 class window.Timeline
   recalculate: ->
     @width  = @$el.width()
@@ -16,25 +17,38 @@ class window.Timeline
 
   stack:      d3.layout.stack().offset("zero")
   parse_date: d3.time.format("%Y-%m-%dT%XZ").parse
-  $x_position: $("#x-position")
-  $y_position: $("#y-position")
-  draw_tooltip: (e) => 
+  $tooltip:    $("#commit-tooltip")
+  draw_tooltip: (e) =>
     return false if not @filtered_commits?
     x = e.offsetX
-    y = e.offsetY
-    @$y_position.text(Math.round(@ry(y)))
-    @$x_position.text(JSON.stringify(@filtered_commits[Math.round(@rx(x))]))
+
+    commit = @filtered_commits[Math.round(@rx(x))]
+
+    @$tooltip.html [
+      commit.sha,
+      'Additions: ' + commit.aggregated_additions,
+      'Deletions: ' + commit.aggregated_deletions
+      'Changes: '   + commit.aggregated_additions + commit.aggregated_deletions
+    ].join("<br>")
+
+    tooltip_width = @$tooltip.width()
+
+    $("#x-marker").css
+      left: @x(Math.round(@rx(x)))
+    @$tooltip.css
+      left: (x - tooltip_width / 2).clip(30, @width - tooltip_width - 30)
+
 
   summed_additions_deletions: (d) => @get_aggregated_additions(d) + @get_aggregated_deletions(d)
   set_aggregate_values: (commit, filter_text) =>
-    commit.aggregated_additions = d3.sum(commit.files, (file) => if @get_filename(file).contains(filter_text) then @get_additions(file) else 0) 
+    commit.aggregated_additions = d3.sum(commit.files, (file) => if @get_filename(file).contains(filter_text) then @get_additions(file) else 0)
     commit.aggregated_deletions = d3.sum(commit.files, (file) => if @get_filename(file).contains(filter_text) then @get_deletions(file) else 0)
 
   constructor: (@$el) ->
     @recalculate()
-    @$el.on('mousemove', @draw_tooltip)    
-    @x.domain [0 , Repo.num_commits]
-    @rx.range [0 , Repo.num_commits]
+    @$el.on('mousemove', @draw_tooltip)
+    @x.domain [0 , Repo.num_commits - 1]
+    @rx.range [0 , Repo.num_commits - 1]
 
     @layer = (commits) =>
       deletions = ({x: commit.pos, y: @get_aggregated_additions(commit), y0: 0} for commit in commits)
@@ -93,10 +107,12 @@ do ->
     if ls_down
       x = x.clip(0, rs.offset().left - 23)
       $highlight.css left: x + 21
+      $(".lowlight.left").css width: x + 21
       ls.css         left: x
     if rs_down
       x = x.clip(ls.offset().left + 23, width - 21)
       $highlight.css right: width - x
+      $(".lowlight.right").css width: width - x
       rs.css          left: x
     temp = timeline_chart.get_timestamp_range(ls.offset().left || 0 , rs.offset().left)
     if not _.isEqual(current, temp)
@@ -107,8 +123,12 @@ do ->
           commit.timestamp >= current[0] and commit.timestamp <= current[1]
       , 50
 
-  ls.on 'mousedown', -> ls_down = true
-  rs.on 'mousedown', -> rs_down = true
+  ls.on 'mousedown', (e) ->
+    e.preventDefault()
+    ls_down = true
+  rs.on 'mousedown', (e) ->
+    e.preventDefault()
+    rs_down = true
 
   $(document).on('mousemove', moved).on 'mouseup mouseenter', -> rs_down = ls_down = false
 
@@ -125,10 +145,6 @@ window.Repo =
   chart: d3.select("#graph_chart").append("svg").attr
     class: 'chart'
     width: settings.width
-    height: settings.height
-  label_chart: d3.select("#label_chart").append("div").attr
-    class: 'label_chart'
-    width: 100
     height: settings.height
   commits: []
   url:     window.location.pathname + ".json"
@@ -237,12 +253,12 @@ window.Repo =
         class: "bar-name-label"
         x: settings.offset - settings.padding
         width: settings.offset
-        y: (f, i) -> i * settings.lineheight + 17     
+        y: (f, i) -> i * settings.lineheight + 17
 
   animate: -> #called after the original draw function and will animate everything into place.
     scale = d3.scale.pow().exponent(.5).domain([0.1, d3.max(Repo.formated_files, (d)-> d[3] )]).range([0, settings.width - settings.offset - 2 * settings.padding])
     Repo.chart.selectAll("rect.deletions")
-      
+
       .transition(settings.duration)
       .delay((d, i) -> (i / Repo.formated_files.length * settings.duration) )
       .attr
@@ -250,20 +266,19 @@ window.Repo =
         width: (f, i) -> if f[3] is 0 then 0 else scale(f[3])*f[2]/f[3]
 
     Repo.chart.selectAll("rect.additions")
-      
+
       .transition(settings.duration)
       .delay((d, i) -> (i / Repo.formated_files.length * settings.duration))
       .attr
         width: (f, i) -> if f[3] is 0 then 0 else scale(f[3])*f[1]/f[3]
 
   find_index_of: (name, files_array) ->
-    for i in [0...files_array.length] by 1
-      if(name is files_array[i][0])
+    for file, i in files_array
+      if(name is file[0])
         return i
     return -1
 
   move_to_new_position: ->
-    #Repo.prepared_files.indexOf(Repo.chart.selectAll("rect.deletions")[0][i].__data__) * 23
     Repo.chart.selectAll("rect.deletions")
       .attr
         visibility: (f) -> if Repo.find_index_of(f[0], Repo.prepared_files) is -1 then "hidden" else ""
@@ -300,7 +315,7 @@ window.Repo =
   filter: (text, files) ->
     (file for file in files when file[0].contains(text) and not _(Repo.excluded_files).contains(file))
 
-  correct_object: (f) -> 
+  correct_object: (f) ->
     index = Repo.find_index_of(f[0], Repo.prepared_files)
     return Repo.prepared_files[index]
 
@@ -324,11 +339,11 @@ window.Repo =
     Repo.prepared_files = Repo.filter(text, Repo.saved_files)
 
     Repo.prepared_files = Repo.prepared_files.sort (a,b) -> (b[3] - a[3])
-    
+
     Repo.move_to_new_position()
-   
+
     Repo.chart.selectAll("text.bar-label")
-      .text (f) -> 
+      .text (f) ->
         file = Repo.correct_object(f)
         return "" if file is undefined
         return file[3]
@@ -337,11 +352,11 @@ window.Repo =
       .transition(settings.duration)
       .delay((d, i) -> (settings.duration))
       .attr
-        x: (f, i) -> 
+        x: (f, i) ->
           file = Repo.correct_object(f)
           return settings.offset if file is undefined
           if file[3] is 0 then settings.offset else scale(file[3])*file[1]/file[3] + settings.offset
-        width: (f, i) -> 
+        width: (f, i) ->
           file = Repo.correct_object(f)
           return 0 if file is undefined
           if file[3] is 0 then 0 else scale(file[3])*file[2]/file[3]
@@ -350,14 +365,14 @@ window.Repo =
       .transition(settings.duration)
       .delay((d, i) -> (settings.duration))
       .attr
-        width: (f, i) -> 
+        width: (f, i) ->
           file = Repo.correct_object(f)
           return settings.offset if file is undefined
           if file[3] is 0 then 0 else scale(file[3])*file[1]/file[3]
 
     Repo.chart.attr
       height: Repo.prepared_files.length * 23
-  
+
 
 $.getJSON Repo.url, Repo.init
 $(window).resize ->
