@@ -5,11 +5,14 @@ class window.Timeline
     @x      = d3.scale.linear().range([0, @width])
     @rx     = d3.scale.linear().domain([0, @width])
     @y      = d3.scale.pow().exponent(.3).range([@height, 0])
-    @ry     = d3.scale.linear().range([@height, 0])
+    @ry     = d3.scale.pow().exponent(.3).domain([@height, 0])
 
   get_timestamp:            (commit) -> commit.timestamp
   get_aggregated_additions: (commit) -> commit.aggregated_additions or 0
   get_aggregated_deletions: (commit) -> commit.aggregated_deletions or 0
+  get_filename:            (file) -> file[0]
+  get_additions:           (file) -> file[1]
+  get_deletions:           (file) -> file[2]
 
   stack:      d3.layout.stack().offset("zero")
   parse_date: d3.time.format("%Y-%m-%dT%XZ").parse
@@ -18,12 +21,15 @@ class window.Timeline
   $x_position: $("#x-position")
   $y_position: $("#y-position")
   draw_tooltip: (e) => 
-    x = e.offsetX - 20
+    x = e.offsetX + 20
     y = e.offsetY
     @$y_position.text(Math.round(@ry(y)))
     @$x_position.text(JSON.stringify(@filtered_commits[Math.round(@rx(x))]))
 
   summed_additions_deletions: (d) => @get_aggregated_additions(d) + @get_aggregated_deletions(d)
+  set_aggregate_values: (commit, filter_text) =>
+    commit.aggregated_additions = d3.sum(commit.files, (file) => if @get_filename(file).contains(filter_text) then @get_additions(file) else 0) #jeff change with globbing
+    commit.aggregated_deletions = d3.sum(commit.files, (file) => if @get_filename(file).contains(filter_text) then @get_deletions(file) else 0)
 
   constructor: (@$el) ->
     @recalculate()
@@ -49,18 +55,19 @@ class window.Timeline
         class: "timeline_chart_svg"
         width: @width
         height: @height
-    @render = (filtered_commits) =>
-      for commit, i in filtered_commits
+    @render = (commits, filter_text="") =>
+      for commit, i in commits
+        @set_aggregate_values(commit, filter_text)
         commit.pos = i if commit?
-      @filtered_commits = filtered_commits
-
+      @filtered_commits = commits
+      filtered_commits = commits
       @svg.selectAll("path").remove()
       @svg.selectAll("g").remove()
       t = d3.max(filtered_commits, @summed_additions_deletions)
       @x.domain [0 , filtered_commits.length]
       @y.domain [0, t]
-      @rx.range [0 , filtered_commits.length - 1] # Question: Why -1
-      @ry.range [0 , t] # Question: Why -1
+      @rx.range [0 , filtered_commits.length]
+      @ry.range [0 , t]
       a = @svg.selectAll(".area").data(@layer filtered_commits)
 
       a.enter()
@@ -146,7 +153,7 @@ window.Repo =
 
   parse_commit: (commit)->
     Repo.add_files commit.files
-    Repo.calculate_files_of commit
+    #Repo.calculate_files_of commit
     Repo.timestamp_to_d3 commit
     Repo.commits = Repo.commits.concat(commit)
     Repo.render_timeline()
@@ -169,7 +176,7 @@ window.Repo =
     Repo.animate()
 
   render_timeline: ->
-    timeline_chart.render Repo.commits.sort(timeline_chart.sort_timestamp_asc)
+    timeline_chart.render Repo.commits.sort(timeline_chart.sort_timestamp_asc), $('#filter').val() #jeff - filter glob; i do filename.search(STUFF)
 
   init: (commits) ->
     Repo.num_commits = commits.length
@@ -210,6 +217,7 @@ window.Repo =
     commit.aggregated_deletions = d3.sum(commit.files, (file)-> file[2])
 
   add_files: (files) ->
+    return if not files?
     for file in files
       name = file[0]
       Repo.files[name]   or= [0, 0]
@@ -396,7 +404,9 @@ f = $('#filter')
 
 filter = () ->
   a = f.val()
-  console.log(a)
-  window.Repo.display_with_filtered_commits_and_text_filter(a)
+  console.log "called input", a
+  Repo.display_with_filtered_commits_and_text_filter(a)
+  timeline_chart.recalculate()
+  timeline_chart.render(Repo.commits, a)
 
 f.on("input",filter)
