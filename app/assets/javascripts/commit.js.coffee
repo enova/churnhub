@@ -30,7 +30,7 @@ class window.Timeline
     commit = @filtered_commits[Math.round(@rx(x))]
 
     @$tooltip.html [
-      d3.time.format("%c")(commit.timestamp),
+      d3.time.format("<b>%c</b>")(commit.timestamp),
       commit.sha,
       'Additions: ' + commit.aggregated_additions,
       'Deletions: ' + commit.aggregated_deletions
@@ -120,7 +120,7 @@ do ->
       $(".lowlight.left").css width: x
       ls.css         left: x
     if rs_down
-      x = x.clip(ls.offset().left + 20, width)
+      x = x.clip(ls.offset().left + 20, width - 20)
       $highlight.css right: width - x - 20
       $(".lowlight.right").css width: width - x - 20
       rs.css          left: x
@@ -128,6 +128,8 @@ do ->
       x = e.pageX
       previous_x or= x
       diff = x - previous_x
+      
+      diff = diff.clip(-ls.offset().left, width - rs.offset().left - 20)
 
       console.log diff
       $highlight.css left: "+=#{diff}", right: "-=#{diff}"
