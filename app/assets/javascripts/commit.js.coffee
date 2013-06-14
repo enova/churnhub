@@ -265,9 +265,10 @@ window.Repo =
         y: (f, i) -> i * (settings.lineheight + settings.linespacing) + 16
 
   animate: -> #called after the original draw function and will animate everything into place.
-    scale = d3.scale.pow().exponent(.5).domain([0.1, d3.max(Repo.formated_files, (d)-> d[3] )]).range([0, settings.width - settings.offset - 2 * settings.padding])
-    Repo.chart.selectAll("rect.deletions")
+    scale = Repo.get_scale()
+    console.log(scale)
 
+    Repo.chart.selectAll("rect.deletions")
       .transition(settings.duration)
       .delay((d, i) -> (i / Repo.formated_files.length * settings.duration) )
       .attr
@@ -275,7 +276,6 @@ window.Repo =
         width: (f, i) -> if f[3] is 0 then 0 else scale(f[3])*f[2]/f[3]
 
     Repo.chart.selectAll("rect.additions")
-
       .transition(settings.duration)
       .delay((d, i) -> (i / Repo.formated_files.length * settings.duration))
       .attr
@@ -341,16 +341,18 @@ window.Repo =
 
     Repo.display_with_filtered_commits_and_text_filter(f.val())
 
-
+  get_scale: () ->
+    return d3.scale.pow().exponent(.5).domain([0.1, d3.max(Repo.prepared_files, (d)-> d[3] )]).range([0, settings.width - settings.offset - 2 * settings.padding])
+  
   display_with_filtered_commits_and_text_filter: (text) ->
 
-    scale = d3.scale.pow().exponent(.5).domain([0.1, d3.max(Repo.formated_files, (d)-> d[3] )]).range([0, settings.width - settings.offset - 2 * settings.padding])
+    
     Repo.prepared_files = Repo.filter(text, Repo.saved_files)
 
     Repo.prepared_files = Repo.prepared_files.sort (a,b) -> (b[3] - a[3])
-
+    
     Repo.move_to_new_position()
-
+    scale = Repo.get_scale()
     Repo.chart.selectAll("text.bar-label")
       .text (f) ->
         file = Repo.correct_object(f)
