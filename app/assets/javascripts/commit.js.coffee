@@ -16,8 +16,6 @@ class window.Timeline
 
   stack:      d3.layout.stack().offset("zero")
   parse_date: d3.time.format("%Y-%m-%dT%XZ").parse
-
-  # Good place to put this? Jeff
   $x_position: $("#x-position")
   $y_position: $("#y-position")
   draw_tooltip: (e) => 
@@ -29,7 +27,7 @@ class window.Timeline
 
   summed_additions_deletions: (d) => @get_aggregated_additions(d) + @get_aggregated_deletions(d)
   set_aggregate_values: (commit, filter_text) =>
-    commit.aggregated_additions = d3.sum(commit.files, (file) => if @get_filename(file).contains(filter_text) then @get_additions(file) else 0) #jeff change with globbing
+    commit.aggregated_additions = d3.sum(commit.files, (file) => if @get_filename(file).contains(filter_text) then @get_additions(file) else 0) 
     commit.aggregated_deletions = d3.sum(commit.files, (file) => if @get_filename(file).contains(filter_text) then @get_deletions(file) else 0)
 
   constructor: (@$el) ->
@@ -39,16 +37,16 @@ class window.Timeline
     @layer = (commits) =>
       deletions = ({x: commit.pos, y: @get_aggregated_additions(commit), y0: 0} for commit in commits)
       additions = ({x: commit.pos, y: @get_aggregated_deletions(commit), y0: @get_aggregated_additions} for commit in commits)
-
       @stack [deletions, additions]
 
     @area = d3.svg.area().x((d) => @x d.x).y0((d) => @y d.y0).y1((d) => @y d.y + d.y0)
 
     @get_timestamp_range = (min_screen_x, max_screen_x) =>
       return false if not @filtered_commits?
-      a = Math.floor @rx(min_screen_x)
-      b = Math.ceil  @rx(max_screen_x)
+      a = Math.round @rx(min_screen_x)
+      b = Math.round @rx(max_screen_x)
       [@filtered_commits[a].timestamp, @filtered_commits[b].timestamp]
+
     @sort_timestamp_asc = (a,b) => a.timestamp - b.timestamp
 
     @svg = d3.select(@$el.selector)
@@ -56,32 +54,34 @@ class window.Timeline
         class: "timeline_chart_svg"
         width: @width
         height: @height
-    @render = (commits, filter_text="") =>
-      for commit, i in commits
-        @set_aggregate_values(commit, filter_text)
-        commit.pos = i if commit?
-      @filtered_commits = commits
-      filtered_commits = commits
-      @svg.selectAll("path").remove()
-      @svg.selectAll("g").remove()
-      t = d3.max(filtered_commits, @summed_additions_deletions)
-      @x.domain [0 , filtered_commits.length]
-      @y.domain [0, t]
-      @rx.range [0 , filtered_commits.length]
-      @ry.range [0 , t]
-      a = @svg.selectAll(".area").data(@layer filtered_commits)
 
+    @render = (commits, filter_text="") =>
+      if not @filter_text? or (not @filter_text is filter_text) or not @filtered_commits
+        for commit, i in commits
+          @set_aggregate_values(commit, filter_text)
+          commit.pos = i if commit?
+        @filtered_commits = commits
+        t = d3.max(@filtered_commits, @summed_additions_deletions)
+        @x.domain [0 , @filtered_commits.length]
+        @y.domain [0, t]
+        @rx.range [0 , @filtered_commits.length]
+        @ry.range [0 , t]
+      a = @svg.selectAll(".area").data(@layer @filtered_commits)
       a.enter()
-        .append("g").attr
-          class: "area"
-        .append("path").transition().attr
+        .append("path")
+        .attr
           d: @area
-          class: (d, i) -> if i is 0 then "additions" else "deletions"
+          class: (d, i) -> if i is 0 then "additions area" else "deletions area"
+      a.transition()
+        .delay((d,i) -> i * 1000)
+        .attr
+          d: @area
+          class: (d, i) -> if i is 0 then "additions area" else "deletions area"
+      a.exit().remove()
 
 window.timeline_chart = new Timeline($("#timeline"))
 
 do ->
-
   ls         = $('.left.slider')
   rs         = $('.right.slider')
   $highlight = $("#highlight")
@@ -138,7 +138,6 @@ window.Repo =
 
   parse_commit: (commit)->
     Repo.add_files commit.files
-    #Repo.calculate_files_of commit
     Repo.timestamp_to_d3 commit
     Repo.commits = Repo.commits.concat(commit)
     Repo.render_timeline()
@@ -178,21 +177,7 @@ window.Repo =
 
     timeline_chart.render Repo.commits
     Repo.add_files commit.files
-    Repo.calculate_files_of commit
     Repo.timestamp_to_d3 commit
-
-  add_commits: (commits) ->
-    Repo.parsed_commits = 0
-    for commit in Repo.commits
-      if commit.files? and commit.files.length > 0
-        console.log("already had files!!!")
-        Repo.parse_commit(commit)
-      else
-        $.getJSON window.location.origin + '/commits/' + commit.id + ".json", Repo.parse_commit
-
-    Repo.render_timeline() if Object.keys(Repo.commits).length > 0
-    console.log("finished parsing")
-
 
   timestamp_to_d3: (commit) ->
     commit.timestamp = d3.time.format("%Y-%m-%dT%XZ").parse(commit.timestamp) if typeof commit.timestamp is "string"
