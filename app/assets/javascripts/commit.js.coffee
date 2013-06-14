@@ -49,11 +49,21 @@ class window.Timeline
 
     @sort_timestamp_asc = (a,b) => a.timestamp - b.timestamp
 
-    @svg = d3.select(@$el.selector)
+    @svg = [(d3.select(@$el.selector)
       .append("svg").attr
-        class: "timeline_chart_svg"
+        class: "timeline_chart_left"
         width: @width
-        height: @height
+        height: @height),
+    (d3.select(@$el.selector)
+      .append("svg").attr
+        class: "timeline_chart_right"
+        width: @width
+        height: @height),
+    (d3.select(@$el.selector)
+      .append("svg").attr
+        class: "timeline_chart"
+        width: @width
+        height: @height)]
 
     @render = (commits, filter_text="") =>
       if not @filter_text? or (not @filter_text is filter_text) or not @filtered_commits
@@ -66,8 +76,8 @@ class window.Timeline
         @y.domain [0, t]
         @rx.range [0 , @filtered_commits.length]
         @ry.range [0 , t]
-      for elm_id in ["timeline-chart-left", "timeline-chart-right", "timeline-chart"]
-        a = @svg.selectAll("##{elm_id}").data(@layer @filtered_commits)
+      for i in [0..2]
+        a = @svg[i].selectAll(".area").data(@layer @filtered_commits)
         a.transition()
           .duration(1000)
           .ease("elastic-in-out")
@@ -77,8 +87,7 @@ class window.Timeline
           .append("path")
           .attr
             d: @area
-            class: (d, i) -> if i is 0 then "additions" else "deletions"
-            id: elm_id
+            class: (d, i) -> if i is 0 then "additions area" else "deletions area"
         a.exit()
           .remove()
 
