@@ -321,12 +321,8 @@ window.Repo =
       .attr
         y: (f, i) -> Repo.find_index_of(f[0], Repo.prepared_files)* settings.lineheight + 17
 
-  filter: (text, array) ->
-    temp_filtered = []
-    for i in [0...array.length] by 1
-      if array[i][0].indexOf(text) != -1
-        temp_filtered.push(array[i])
-    return temp_filtered
+  filter: (text, files) ->
+    (file for file in files when file[0].contains(text) and not _(Repo.excluded_files).contains(file))
 
   correct_object: (f) -> 
     index = Repo.find_index_of(f[0], Repo.prepared_files)
@@ -392,6 +388,7 @@ window.t = timeline_chart
 $(window).resize ->
   timeline_chart.recalculate()
   Repo.render_timeline()
+
 f = $('#filter')
 
 filter = () ->
@@ -400,3 +397,4 @@ filter = () ->
   window.Repo.display_with_filtered_commits_and_text_filter(a)
 
 f.on("input",filter)
+$(document).on 'click', '.additions', (e) -> console.log 'hi'
