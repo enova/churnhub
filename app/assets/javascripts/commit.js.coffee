@@ -148,7 +148,7 @@ do ->
         timeout = setTimeout ->
           Repo.display_with_filtered_commits Repo.commits.filter (commit) ->
             commit.timestamp >= current[0] and commit.timestamp <= current[1]
-        , 50
+        , 200
 
   ls.on 'mousedown', (e) ->
     e.preventDefault()
@@ -160,7 +160,8 @@ do ->
     e.preventDefault()
     mid_down = true
 
-  $(document).on('mousemove', moved).on 'mouseup mouseenter', -> rs_down = ls_down = mid_down = false
+  $(document).on('mousemove', moved).on 'mouseup mouseenter', ->
+    rs_down = ls_down = mid_down = false
 
 settings =
   width: $("#graph_chart").innerWidth()
