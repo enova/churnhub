@@ -33,6 +33,8 @@ class window.Timeline
   constructor: (@$el) ->
     @recalculate()
     @$el.on('mousemove', @draw_tooltip)    
+    @x.domain [0 , Repo.num_commits]
+    @rx.range [0 , Repo.num_commits]
 
     @layer = (commits) =>
       deletions = ({x: commit.pos, y: @get_aggregated_additions(commit), y0: 0} for commit in commits)
@@ -62,14 +64,11 @@ class window.Timeline
           commit.pos = i if commit?
         @filtered_commits = commits
         t = d3.max(@filtered_commits, @summed_additions_deletions)
-        @x.domain [0 , @filtered_commits.length]
         @y.domain [0, t]
-        @rx.range [0 , @filtered_commits.length]
         @ry.range [0 , t]
       a = @svg.selectAll(".area").data(@layer @filtered_commits)
       a.transition()
-        .duration(1000)
-        .ease("elastic-in-out")
+        .duration(100)
         .attr
           d: @area
       a.enter()
@@ -80,7 +79,6 @@ class window.Timeline
       a.exit()
         .remove()
 
-window.timeline_chart = new Timeline($("#timeline"))
 
 do ->
   ls         = $('.left.slider')
@@ -167,6 +165,7 @@ window.Repo =
     Repo.num_commits = commits.length
     Repo.parsed_files = 0
     Repo.$progress = $("#progress")
+    window.timeline_chart = new Timeline($("#timeline"))
 
     for commit in commits
       if commit.files?
@@ -232,7 +231,6 @@ window.Repo =
         class: "bar-label"
         x: settings.offset + 5
         y: (f, i) -> i * settings.lineheight + 17
-        style: (f, i) -> "fill: " + (if f[3] is 0 then "#555" else "#fff")
 
     bar_name_labels = Repo.chart.selectAll("g").data(Repo.formated_files).append("text")
       .text((f, i) -> f[0]).attr
@@ -240,7 +238,6 @@ window.Repo =
         x: settings.offset - settings.padding
         width: settings.offset
         y: (f, i) -> i * settings.lineheight + 17     
-        style: (f, i) -> "fill: #333"
 
   animate: -> #called after the original draw function and will animate everything into place.
     scale = d3.scale.pow().exponent(.5).domain([0.1, d3.max(Repo.formated_files, (d)-> d[3] )]).range([0, settings.width - settings.offset - 2 * settings.padding])
@@ -363,7 +360,6 @@ window.Repo =
   
 
 $.getJSON Repo.url, Repo.init
-window.t = timeline_chart
 $(window).resize ->
   timeline_chart.recalculate()
   Repo.render_timeline()
