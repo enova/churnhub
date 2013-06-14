@@ -23,13 +23,14 @@ class window.Timeline
   $tooltip:    $("#commit-tooltip")
   draw_tooltip: (e) =>
     return false if not @filtered_commits?
-    x = e.offsetX
+    x = e.pageX
     clearTimeout @tooltip_timeout
     @$tooltip.fadeIn()
 
     commit = @filtered_commits[Math.round(@rx(x))]
 
     @$tooltip.html [
+      d3.time.format("%c")(commit.timestamp),
       commit.sha,
       'Additions: ' + commit.aggregated_additions,
       'Deletions: ' + commit.aggregated_deletions
@@ -104,30 +105,48 @@ do ->
   ls         = $('.left.slider')
   rs         = $('.right.slider')
   $highlight = $("#highlight")
-  rs_down    = ls_down = false
+  rs_down    = ls_down =   false
+  mid_down = null
+  previous_x = 0
   width      = $("#timeline").innerWidth()
   current = []
   timeout = false
+
   moved = (e) ->
     x = e.pageX - 10
     if ls_down
-      x = x.clip(0, rs.offset().left - 23)
-      $highlight.css left: x + 21
-      $(".lowlight.left").css width: x + 21
+      x = x.clip(0, rs.offset().left - 20)
+      $highlight.css left: x
+      $(".lowlight.left").css width: x
       ls.css         left: x
     if rs_down
-      x = x.clip(ls.offset().left + 23, width - 21)
-      $highlight.css right: width - x
-      $(".lowlight.right").css width: width - x
+      x = x.clip(ls.offset().left + 20, width)
+      $highlight.css right: width - x - 20
+      $(".lowlight.right").css width: width - x - 20
       rs.css          left: x
-    temp = timeline_chart.get_timestamp_range(ls.offset().left || 0 , rs.offset().left)
-    if not _.isEqual(current, temp)
-      current = temp
-      clearTimeout(timeout)
-      timeout = setTimeout ->
-        Repo.display_with_filtered_commits Repo.commits.filter (commit) ->
-          commit.timestamp >= current[0] and commit.timestamp <= current[1]
-      , 50
+    if mid_down
+      x = e.pageX
+      previous_x or= x
+      diff = x - previous_x
+
+      console.log diff
+      $highlight.css left: "+=#{diff}", right: "-=#{diff}"
+      ls.css left: "+=#{diff}"
+      rs.css left: "+=#{diff}"
+      previous_x = x
+      $(".lowlight.right").css width: "-=#{diff}"
+      $(".lowlight.left").css width: "+=#{diff}"
+
+    if timeline_chart?
+      temp = timeline_chart.get_timestamp_range(ls.offset().left || 0 , rs.offset().left)
+      previous_x = x
+      if not _.isEqual(current, temp)
+        current = temp
+        clearTimeout(timeout)
+        timeout = setTimeout ->
+          Repo.display_with_filtered_commits Repo.commits.filter (commit) ->
+            commit.timestamp >= current[0] and commit.timestamp <= current[1]
+        , 50
 
   ls.on 'mousedown', (e) ->
     e.preventDefault()
@@ -135,8 +154,11 @@ do ->
   rs.on 'mousedown', (e) ->
     e.preventDefault()
     rs_down = true
+  $("#highlight").on 'mousedown', (e) ->
+    e.preventDefault()
+    mid_down = true
 
-  $(document).on('mousemove', moved).on 'mouseup mouseenter', -> rs_down = ls_down = false
+  $(document).on('mousemove', moved).on 'mouseup mouseenter', -> rs_down = ls_down = mid_down = false
 
 settings =
   width: $("#graph_chart").innerWidth()

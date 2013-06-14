@@ -29,12 +29,12 @@ h1, h2, h3, h4, h5
   padding-right: 10px
 
 .additions
-  fill: rgba(45, 255, 45, 0.5)
+  fill: #90ff90
   stroke: rgba(45, 255, 45, 1)
   &:hover
     fill: rgba(45, 255, 45, 0.7)
 .deletions
-  fill: rgba(255, 45, 45, 0.5)
+  fill: #ff9090
   stroke: rgba(255, 45, 45, 1)
   &:hover
     fill: rgba(255, 45, 45, 0.6)
@@ -59,7 +59,7 @@ h1, h2, h3, h4, h5
   left: -100px
   bottom: 110px
   max-width: 80%
-  max-height: 100px
+  max-height: 200px
   background-color: rgba(255,255,255, 0.9)
   box-shadow: 1px 1px 30px rgba(0,0,0, 0.5), 1px 1px 5px rgba(0,0,0, 0.8)
   border: 2px white solid
@@ -68,23 +68,32 @@ h1, h2, h3, h4, h5
   padding: 5px
   box-model: border-box
 
-
 #highlight, .lowlight
-  z-index: -1
+  z-index: 1000
   position: absolute
   top: 0
   bottom: 0
 .lowlight
-  background-color: rgba(205,220,220, 0.8)
+  background-color: rgba(115,120,120, 0.4)
   width: 0
   &.left
     left: 0
   &.right
     right: 0
 #highlight
-  background-color: rgba(255,255,255, 0.9)
-  left: 21px
-  right: 2%
+  // background-color: rgba(255,255,255, 0.7)
+  left: 0px
+  border: 1px solid rgba(230,255,255, 0.8)
+  border-bottom-width: 2px
+  border-right-width: 2px
+  // box-shadow: 1px 1px 1px rgba(0,0,0, 0.2), 1px 1px 10px rgba(0,0,0, 0.8), inset 5px 5px 10px rgba(255,255,255, 0.7), inset -1px -5px 10px rgba(0,0,0, 0.3)
+  box-shadow: 0px 0px 0px 1px rgba(0,150,150,0.2), 0px 1px 7px rgba(0,0,0,0.8)
+  right: 0
+  bottom: 0px
+  border-radius: 4px
+  cursor: default
+  background-image: linear-gradient(to bottom, rgba(250,255,255, 0.8), rgba(250,255,255, 0.4) 35%)
+
 
 #timeline
   box-shadow: 0 29px 30px 30px rgba(0,0,0, 0.4)
@@ -101,23 +110,23 @@ h1, h2, h3, h4, h5
   z-index: 100
   position: relative
   .additions
-    fill: rgba(115, 255, 115, 1)
+    fill: #90ff90
   .deletions
-    fill: rgba(255, 115, 115, 1)
+    fill: #ff9090
 
 .slider
+  $white: white
+  $black: rgba(0,40,40, 0.5)
+  background-image: linear-gradient(to left, transparent, transparent 7px, $white 7px, $white 8px, $black 8px, $black 9px, transparent 9px, transparent 11px, $white 11px, $white 12px, $black 12px, $black 13px, transparent 13px)
   position: fixed
-  height: 110px
-  width: 19px
-  background-image: linear-gradient(to right, rgba(0,70,70, 0.2), rgba(0,70,70, 0.05) 9px, red 9px, red 10px, rgba(0,70,70, 0.3) 10px, rgba(0,70,70, 0.05))
-  border: 1px solid rgba(230,255,255, 0.8)
-  box-shadow: 1px 1px 1px rgba(0,0,0, 0.2), 1px 1px 10px rgba(0,0,0, 0.8)
-  border-radius: 2px 2px 0 0
-  bottom: 0
+  // border: 1px solid red
+  height: 50px
+  width: 20px
+  bottom: 25px
   cursor: default
   left: 0
   &.right
-    left: 98%
+    left: 99%
 
 #x-marker
   width: 1px
