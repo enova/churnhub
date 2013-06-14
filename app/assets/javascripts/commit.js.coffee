@@ -21,7 +21,8 @@ class window.Timeline
   $x_position: $("#x-position")
   $y_position: $("#y-position")
   draw_tooltip: (e) => 
-    x = e.offsetX + 20
+    return false if not @filtered_commits?
+    x = e.offsetX
     y = e.offsetY
     @$y_position.text(Math.round(@ry(y)))
     @$x_position.text(JSON.stringify(@filtered_commits[Math.round(@rx(x))]))
@@ -79,18 +80,18 @@ class window.Timeline
 
       c = @svg.selectAll(".point").data(filtered_commits)
       c.enter()
-        # .append("g")
-        # .attr("class", "point")
-        # .append("circle")
-        # .attr
-        #   class: "deletions"
-        #   r: 5
-        #   cx: (d) =>
-        #     @x d.pos
-        #   cy: (d) =>
-        #     @y @get_aggregated_deletions(d) + @get_aggregated_additions(d)
+        .append("g")
+        .attr("class", "point")
+        .append("circle")
+        .attr
+          class: "deletions"
+          r: 5
+          cx: (d) =>
+            @x d.pos
+          cy: (d) =>
+            @y @get_aggregated_deletions(d) + @get_aggregated_additions(d)
         .append("title")
-        .text (d) -> d.timestamp
+        .text (d) => JSON.stringify(d)
       c.exit().remove()
 
 window.timeline_chart = new Timeline($("#timeline"))
