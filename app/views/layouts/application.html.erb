@@ -15,7 +15,7 @@
     <div id="right">
       <% if session[:access_token] %>
         <span id="user">
-          Hello, <%= @user["name"] %> (<%= link_to @user["login"], @user["url"] %>)
+          Hello, <%= session[:user_name] %> (<%= link_to session[:user_login], session[:user_github_profile] %>)
         </span>
         <span id="logout"> <%= link_to "logout", "/signout" %> </span>
       <% else %>
