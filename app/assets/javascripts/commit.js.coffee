@@ -66,22 +66,21 @@ class window.Timeline
         @y.domain [0, t]
         @rx.range [0 , @filtered_commits.length]
         @ry.range [0 , t]
-      a = @svg.selectAll(".area").data(@layer @filtered_commits)
-      a
-        .transition()
-        .duration(1000)
-        .ease("elastic-in-out")
-        .attr
-          d: @area
-          class: (d, i) -> if i is 0 then "additions area" else "deletions area"
-
-      a.enter()
-        .append("path")
-        .attr
-          d: @area
-          class: (d, i) -> if i is 0 then "additions area" else "deletions area"
-      a.exit()
-        .remove()
+      for elm_id in ["timeline-chart-left", "timeline-chart-right", "timeline-chart"]
+        a = @svg.selectAll("##{elm_id}").data(@layer @filtered_commits)
+        a.transition()
+          .duration(1000)
+          .ease("elastic-in-out")
+          .attr
+            d: @area
+        a.enter()
+          .append("path")
+          .attr
+            d: @area
+            class: (d, i) -> if i is 0 then "additions" else "deletions"
+            id: elm_id
+        a.exit()
+          .remove()
 
 window.timeline_chart = new Timeline($("#timeline"))
 
