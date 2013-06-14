@@ -1,19 +1,36 @@
+$blue: #49f
+
 body
   font-size: 20px
   font-family: helvetica
+  padding: 0 50px
+
+a
+  text-decoration: none
+  color: $blue
 
 header
-  padding: .5em
-  font-size: 16px
-
-header > div#right
-  float: right
-
-header > div#left
-  float: left
-
-header a
-  text-decoration: none
+  background-color: rgba(255,255,255, 0.9)
+  // box-shadow: 0 -29px 30px 30px rgba(0,0,0, 0.4)
+  position: absolute
+  z-index: 100
+  top: 0
+  left: 0
+  right: 0
+  padding: 0 50px
+  line-height: 60px
+  white-space: nowrap
+  > ul
+    margin: 0
+    padding: 0
+    list-style-type: none
+    display: -webkit-flex
+    -webkit-align-items: center
+    -webkit-justify-content: space-around
+    > li
+      margin: 0 20px
+      &.search
+        -webkit-flex-grow: 1
 
 section 
-  padding-top: 2em
+  padding-top: 100px

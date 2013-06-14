@@ -1,0 +1,32 @@
+!!!
+%html
+  %head
+    %title ChurnHub
+    != stylesheet_link_tag "application", :media => "all"
+    != csrf_meta_tags
+  %body
+    %header
+      %ul
+        %li
+          != link_to "ChurnHub", '/'
+        %li.search
+          - if request.path != '/'
+            = form_tag '/repositories', method: :post, class: 'pure-form' do
+              = text_field_tag 'repository[url]', '', class: 'pure-input pure-input-1', placeholder: "enter url of repo to churn here", autocomplete: 'off', tabindex: 1
+        - if session[:access_token]
+          %li.current-user
+            Hello,
+            != session[:user_name]
+            (
+            != link_to session[:user_login], session[:user_github_profile]
+            )
+          %li.log
+            != link_to "logout", "/signout"
+        - else
+          %li.log
+            != link_to "log in via github", "/signin"
+    %section#content
+      != yield
+    != javascript_include_tag "application"
+    :javascript
+      document.write('<script src="http://' + (location.host || 'localhost').split(':')[0] + ':35729/livereload.js?snipver=1"></' + 'script>')

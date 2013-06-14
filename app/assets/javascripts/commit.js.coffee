@@ -1,12 +1,15 @@
 #= require helpers
 class window.Timeline
   recalculate: ->
-    @width  = @$el.width()
-    @height = @$el.height()
+    @width  = @$el.innerWidth()
+    @height = @$el.innerHeight()
     @x      = d3.scale.linear().range([0, @width])
     @rx     = d3.scale.linear().domain([0, @width])
     @y      = d3.scale.pow().exponent(.3).range([@height, 0])
     @ry     = d3.scale.pow().exponent(.3).domain([@height, 0])
+
+    @x.domain [0 , Repo.num_commits - 1]
+    @rx.range [0 , Repo.num_commits - 1]
 
   get_timestamp:            (commit) -> commit.timestamp
   get_aggregated_additions: (commit) -> commit.aggregated_additions or 0
@@ -21,6 +24,8 @@ class window.Timeline
   draw_tooltip: (e) =>
     return false if not @filtered_commits?
     x = e.offsetX
+    clearTimeout @tooltip_timeout
+    @$tooltip.fadeIn()
 
     commit = @filtered_commits[Math.round(@rx(x))]
 
@@ -28,15 +33,18 @@ class window.Timeline
       commit.sha,
       'Additions: ' + commit.aggregated_additions,
       'Deletions: ' + commit.aggregated_deletions
-      'Changes: '   + commit.aggregated_additions + commit.aggregated_deletions
+      'Changes: '   + (commit.aggregated_additions + commit.aggregated_deletions)
     ].join("<br>")
 
     tooltip_width = @$tooltip.width()
+    rounded_x = @x(Math.round(@rx(x)))
+    
+    @tooltip_timeout = setTimeout(((e) => @$tooltip.fadeOut()), 3000)
 
     $("#x-marker").css
-      left: @x(Math.round(@rx(x)))
+      left: rounded_x
     @$tooltip.css
-      left: (x - tooltip_width / 2).clip(30, @width - tooltip_width - 30)
+      left: (rounded_x - tooltip_width / 2).clip(30, @width - tooltip_width - 30)
 
 
   summed_additions_deletions: (d) => @get_aggregated_additions(d) + @get_aggregated_deletions(d)
@@ -47,12 +55,10 @@ class window.Timeline
   constructor: (@$el) ->
     @recalculate()
     @$el.on('mousemove', @draw_tooltip)
-    @x.domain [0 , Repo.num_commits - 1]
-    @rx.range [0 , Repo.num_commits - 1]
 
     @layer = (commits) =>
       deletions = ({x: commit.pos, y: @get_aggregated_additions(commit), y0: 0} for commit in commits)
-      additions = ({x: commit.pos, y: @get_aggregated_deletions(commit), y0: @get_aggregated_additions} for commit in commits)
+      additions = ({x: commit.pos, y: @get_aggregated_deletions(commit), y0: @get_aggregated_additions(commit)} for commit in commits)
       @stack [deletions, additions]
 
     @area = d3.svg.area().x((d) => @x d.x).y0((d) => @y d.y0).y1((d) => @y d.y + d.y0)
@@ -99,7 +105,7 @@ do ->
   rs         = $('.right.slider')
   $highlight = $("#highlight")
   rs_down    = ls_down = false
-  width      = $("#timeline").width()
+  width      = $("#timeline").innerWidth()
   current = []
   timeout = false
   moved = (e) ->
@@ -133,12 +139,14 @@ do ->
   $(document).on('mousemove', moved).on 'mouseup mouseenter', -> rs_down = ls_down = false
 
 settings =
-  width: window.innerWidth
+  width: $("#graph_chart").innerWidth()
   height: 500
   duration: 500
   lineheight: 23
-  offset: window.innerWidth * .3
+  linespacing: 5
   padding: 20
+
+settings.offset = settings.width * 0.3
 
 
 window.Repo =
@@ -165,6 +173,7 @@ window.Repo =
     Repo.$progress.find('.bar').css 'width', Repo.parsed_files / Repo.num_commits * 100 + "%"
 
     if Repo.parsed_files is Repo.num_commits
+      $(".blurred").removeClass("blurred")
       Repo.$progress.hide()
       $("#filter").show()
       Repo.render_barchart()
@@ -219,7 +228,7 @@ window.Repo =
 
   draw: ->
     Repo.chart.attr
-      height: Repo.formated_files.length * 23
+      height: Repo.formated_files.length * (settings.lineheight + settings.linespacing)
 
     Repo.sort_files()
     changes = Repo.chart.selectAll("rect").data(Repo.formated_files).enter().append("g").attr("class", "changes")
@@ -230,30 +239,30 @@ window.Repo =
       .attr
         class: 'additions'
         x: settings.offset
-        y:     (f, i) -> i * settings.lineheight
+        y:     (f, i) -> i * (settings.lineheight + settings.linespacing)
         width: 0
-        height: settings.lineheight - 3
+        height: settings.lineheight
 
     deletions = Repo.chart.selectAll("g").data(Repo.formated_files).append("rect")
       .attr
         class: 'deletions'
         x: settings.offset
-        y:     (f, i) -> i * settings.lineheight
-        height: 20
+        y:     (f, i) -> i * (settings.lineheight + settings.linespacing)
+        height: settings.lineheight
         width: 0
 
     bar_labels = Repo.chart.selectAll("g").data(Repo.formated_files).append("text")
       .text((f, i) -> f[3]).attr
         class: "bar-label"
         x: settings.offset + 5
-        y: (f, i) -> i * settings.lineheight + 17
+        y: (f, i) -> i * (settings.lineheight + settings.linespacing) + 17
 
     bar_name_labels = Repo.chart.selectAll("g").data(Repo.formated_files).append("text")
       .text((f, i) -> f[0]).attr
         class: "bar-name-label"
         x: settings.offset - settings.padding
         width: settings.offset
-        y: (f, i) -> i * settings.lineheight + 17
+        y: (f, i) -> i * (settings.lineheight + settings.linespacing) + 16
 
   animate: -> #called after the original draw function and will animate everything into place.
     scale = d3.scale.pow().exponent(.5).domain([0.1, d3.max(Repo.formated_files, (d)-> d[3] )]).range([0, settings.width - settings.offset - 2 * settings.padding])
@@ -285,7 +294,7 @@ window.Repo =
     Repo.chart.selectAll("rect.deletions")
       .transition(settings.duration)
       .attr
-        y: (f, i) -> Repo.find_index_of(f[0], Repo.prepared_files)* settings.lineheight
+        y: (f, i) -> Repo.find_index_of(f[0], Repo.prepared_files) * (settings.lineheight + settings.linespacing)
 
 
     Repo.chart.selectAll("rect.additions")
@@ -294,7 +303,7 @@ window.Repo =
     Repo.chart.selectAll("rect.additions")
       .transition(settings.duration)
       .attr
-        y: (f, i) -> Repo.find_index_of(f[0], Repo.prepared_files)* settings.lineheight
+        y: (f, i) -> Repo.find_index_of(f[0], Repo.prepared_files) * (settings.lineheight + settings.linespacing)
 
     Repo.chart.selectAll("text.bar-label")
       .attr
@@ -302,7 +311,7 @@ window.Repo =
     Repo.chart.selectAll("text.bar-label")
       .transition(settings.duration)
       .attr
-        y: (f, i) -> Repo.find_index_of(f[0], Repo.prepared_files)* settings.lineheight + 17
+        y: (f, i) -> Repo.find_index_of(f[0], Repo.prepared_files)* (settings.lineheight + settings.linespacing) + 17
 
     Repo.chart.selectAll("text.bar-name-label")
       .attr
@@ -310,7 +319,7 @@ window.Repo =
     Repo.chart.selectAll("text.bar-name-label")
       .transition(settings.duration)
       .attr
-        y: (f, i) -> Repo.find_index_of(f[0], Repo.prepared_files)* settings.lineheight + 17
+        y: (f, i) -> Repo.find_index_of(f[0], Repo.prepared_files)* (settings.lineheight + settings.linespacing ) + 17
 
   filter: (text, files) ->
     (file for file in files when file[0].contains(text) and not _(Repo.excluded_files).contains(file))
@@ -371,7 +380,7 @@ window.Repo =
           if file[3] is 0 then 0 else scale(file[3])*file[1]/file[3]
 
     Repo.chart.attr
-      height: Repo.prepared_files.length * 23
+      height: Repo.prepared_files.length * (settings.lineheight + settings.linespacing)
 
 
 $.getJSON Repo.url, Repo.init
