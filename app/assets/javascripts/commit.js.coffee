@@ -67,17 +67,21 @@ class window.Timeline
         @rx.range [0 , @filtered_commits.length]
         @ry.range [0 , t]
       a = @svg.selectAll(".area").data(@layer @filtered_commits)
+      a
+        .transition()
+        .duration(1000)
+        .ease("elastic-in-out")
+        .attr
+          d: @area
+          class: (d, i) -> if i is 0 then "additions area" else "deletions area"
+
       a.enter()
         .append("path")
         .attr
           d: @area
           class: (d, i) -> if i is 0 then "additions area" else "deletions area"
-      a.transition()
-        .delay((d,i) -> i * 1000)
-        .attr
-          d: @area
-          class: (d, i) -> if i is 0 then "additions area" else "deletions area"
-      a.exit().remove()
+      a.exit()
+        .remove()
 
 window.timeline_chart = new Timeline($("#timeline"))
 
