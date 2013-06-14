@@ -50,8 +50,8 @@ class window.Timeline
 
   summed_additions_deletions: (d) => @get_aggregated_additions(d) + @get_aggregated_deletions(d)
   set_aggregate_values: (commit, filter_text) =>
-    commit.aggregated_additions = d3.sum(commit.files, (file) => if @get_filename(file).contains(filter_text) then @get_additions(file) else 0)
-    commit.aggregated_deletions = d3.sum(commit.files, (file) => if @get_filename(file).contains(filter_text) then @get_deletions(file) else 0)
+    commit.aggregated_additions = d3.sum(commit.files, (file) => if @get_filename(file).matches(filter_text) then @get_additions(file) else 0) 
+    commit.aggregated_deletions = d3.sum(commit.files, (file) => if @get_filename(file).matches(filter_text) then @get_deletions(file) else 0)
 
   constructor: (@$el) ->
     @recalculate()
@@ -346,7 +346,7 @@ window.Repo =
         y: (f, i) -> Repo.find_index_of(f[0], Repo.prepared_files)* (settings.lineheight + settings.linespacing ) + 17
 
   filter: (text, files) ->
-    (file for file in files when file[0].contains(text) and not _(Repo.excluded_files).contains(file))
+    (file for file in files when file[0].matches(text) and not _(Repo.excluded_files).contains(file))
 
   correct_object: (f) ->
     index = Repo.find_index_of(f[0], Repo.prepared_files)
