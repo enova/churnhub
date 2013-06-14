@@ -25,7 +25,7 @@ patternsToRegex = (obj) ->
               []
 
 toRegex = (str) ->
-  new RegExp str.replace('*', '[^ \\/:]*').replace(/[^\]]\*\*/, '.*').replace('?', '.')
+  new RegExp str.replace('.', '\.').replace('*', '[^ \\/:]*').replace(/[^\]]\*\*/, '.*').replace('?', '.')
 
 makeMatch = (str) ->
   (pattern) ->
