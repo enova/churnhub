@@ -13,10 +13,11 @@ commandType = (command) ->
 
 patternsToRegex = (obj) ->
   matchObj =
-    bare: if obj.bare
-            obj.bare.map toRegex
-          else
-            []
+    bare:
+      if obj.bare
+        obj.bare.map toRegex
+      else
+        []
     except:
       if obj.except
         toRegex(pattern[1 ..]) for pattern in obj.except when pattern.length > 1
