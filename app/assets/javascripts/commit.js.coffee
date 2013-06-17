@@ -14,9 +14,9 @@ class window.Timeline
   get_timestamp:            (commit) -> commit.timestamp
   get_aggregated_additions: (commit) -> commit.aggregated_additions or 0
   get_aggregated_deletions: (commit) -> commit.aggregated_deletions or 0
-  get_filename:            (file) -> file[0]
-  get_additions:           (file) -> file[1]
-  get_deletions:           (file) -> file[2]
+  get_filename:            (file) -> file.filename
+  get_additions:           (file) -> file.additions
+  get_deletions:           (file) -> file.deletions
 
   stack:      d3.layout.stack().offset("zero")
   parse_date: d3.time.format("%Y-%m-%dT%XZ").parse
@@ -39,7 +39,7 @@ class window.Timeline
 
     tooltip_width = @$tooltip.width()
     rounded_x = @x(Math.round(@rx(x)))
-    
+
     @tooltip_timeout = setTimeout(((e) => @$tooltip.fadeOut()), 3000)
 
     $("#x-marker").css
@@ -48,10 +48,10 @@ class window.Timeline
       left: (rounded_x - tooltip_width / 2).clip(30, @width - tooltip_width - 30)
 
 
-  summed_additions_deletions: (d) => @get_aggregated_additions(d) + @get_aggregated_deletions(d)
+  summed_additions_deletions: (commit) => @get_aggregated_additions(commit) + @get_aggregated_deletions(commit)
   set_aggregate_values: (commit, filter_text) =>
-    commit.aggregated_additions = d3.sum(commit.files, (file) => if @get_filename(file).matches(filter_text) then @get_additions(file) else 0) 
-    commit.aggregated_deletions = d3.sum(commit.files, (file) => if @get_filename(file).matches(filter_text) then @get_deletions(file) else 0)
+    commit.aggregated_additions = d3.sum(commit.files, (file) => if file.filename.matches(filter_text) then file.additions else 0)
+    commit.aggregated_deletions = d3.sum(commit.files, (file) => if file.filename.matches(filter_text) then file.deletions else 0)
 
   constructor: (@$el) ->
     @recalculate()
@@ -70,7 +70,7 @@ class window.Timeline
       b = Math.round @rx(max_screen_x)
       [@filtered_commits[a].timestamp, @filtered_commits[b].timestamp]
 
-    @sort_timestamp_asc = (a,b) => a.timestamp - b.timestamp
+    @sort_timestamp_asc = (a, b) => a.timestamp - b.timestamp
 
     @svg = (d3.select(@$el.selector)
       .append("svg").attr
@@ -128,10 +128,9 @@ do ->
       x = e.pageX
       previous_x or= x
       diff = x - previous_x
-      
+
       diff = diff.clip(-ls.offset().left, width - rs.offset().left - 20)
 
-      console.log diff
       $highlight.css left: "+=#{diff}", right: "-=#{diff}"
       ls.css left: "+=#{diff}"
       rs.css left: "+=#{diff}"
@@ -209,7 +208,7 @@ window.Repo =
     Repo.animate()
 
   render_timeline: ->
-    timeline_chart.render Repo.commits.sort(timeline_chart.sort_timestamp_asc), $('#filter').val() #jeff - filter glob; i do filename.search(STUFF)
+    timeline_chart.render Repo.commits.sort(timeline_chart.sort_timestamp_asc), $('#filter').val()
 
   init: (commits) ->
     Repo.num_commits = commits.length
@@ -218,7 +217,7 @@ window.Repo =
     window.timeline_chart = new Timeline($("#timeline"))
 
     for commit in commits
-      if commit.files?
+      if commit.timestamp?
         Repo.parse_commit(commit)
       else
         $.getJSON window.location.origin + "/commits/#{commit.id}.json", Repo.parse_commit
@@ -233,22 +232,28 @@ window.Repo =
     commit.timestamp = d3.time.format("%Y-%m-%dT%XZ").parse(commit.timestamp) if typeof commit.timestamp is "string"
 
   calculate_files_of: (commit) ->
-    commit.aggregated_additions = d3.sum(commit.files, (file)-> file[1])
-    commit.aggregated_deletions = d3.sum(commit.files, (file)-> file[2])
+    commit.aggregated_additions = d3.sum(commit.files, (file)-> file.additions)
+    commit.aggregated_deletions = d3.sum(commit.files, (file)-> file.deletions)
 
   add_files: (files) ->
     return if not files?
     for file in files
-      name = file[0]
-      Repo.files[name]   or= [0, 0]
-      Repo.files[name][0] += file[1]
-      Repo.files[name][1] += file[2]
+      name = file.filename
+      Repo.files[name]   or= {additions: 0, deletions: 0}
+      Repo.files[name].additions += file.additions
+      Repo.files[name].deletions += file.deletions
 
   format_files: ->
-    Repo.formated_files   = ([name, f[0], f[1], f[0]+f[1]] for name, f of Repo.files)
+    Repo.formated_files = for name, file of Repo.files
+      {
+        filename:  name,
+        additions: file.additions,
+        deletions: file.deletions,
+        changes:   file.additions + file.deletions
+      }
 
   sort_files: ->
-    Repo.formated_files.sort (a,b) -> (b[3] - a[3])
+    Repo.formated_files.sort (file1, file2) -> (file2.changes - file1.changes)
     Repo.prepared_files = Repo.formated_files
 
   draw: ->
@@ -258,13 +263,13 @@ window.Repo =
     Repo.sort_files()
     changes = Repo.chart.selectAll("rect").data(Repo.formated_files).enter().append("g").attr("class", "changes")
       .append("svg:title")
-      .text( (a) -> a[0])
+      .text((file) -> file.filename)
 
     additions = Repo.chart.selectAll("g").data(Repo.formated_files).append("rect")
       .attr
         class: 'additions'
         x: settings.offset
-        y:     (f, i) -> i * (settings.lineheight + settings.linespacing)
+        y:     (file, i) -> i * (settings.lineheight + settings.linespacing)
         width: 0
         height: settings.lineheight
 
@@ -277,17 +282,17 @@ window.Repo =
         width: 0
 
     bar_labels = Repo.chart.selectAll("g").data(Repo.formated_files).append("text")
-      .text((f, i) -> f[3]).attr
+      .text((file, i) -> file.changes).attr
         class: "bar-label"
         x: settings.offset + 5
         y: (f, i) -> i * (settings.lineheight + settings.linespacing) + 17
 
     bar_name_labels = Repo.chart.selectAll("g").data(Repo.formated_files).append("text")
-      .text((f, i) -> f[0]).attr
+      .text((file, i) -> file.filename).attr
         class: "bar-name-label"
         x: settings.offset - settings.padding
         width: settings.offset
-        y: (f, i) -> i * (settings.lineheight + settings.linespacing) + 16
+        y: (file, i) -> i * (settings.lineheight + settings.linespacing) + 16
 
   animate: -> #called after the original draw function and will animate everything into place.
     scale = Repo.get_scale()
@@ -295,116 +300,119 @@ window.Repo =
 
     Repo.chart.selectAll("rect.deletions")
       .transition(settings.duration)
-      .delay((d, i) -> (i / Repo.formated_files.length * settings.duration) )
+      .delay((file, i) -> (i / Repo.formated_files.length * settings.duration) )
       .attr
-        x: (f) -> if f[3] is 0 then settings.offset else (scale(f[3])*f[1]/f[3] + settings.offset)
-        width: (f, i) -> if f[3] is 0 then 0 else scale(f[3])*f[2]/f[3]
+        x: (file) -> if file.changes is 0 then settings.offset else scale(file.changes) * file.additions / file.changes + settings.offset
+        width: (file, i) -> if file.changes is 0 then 0 else scale(file.changes) * file.deletions / file.changes
 
     Repo.chart.selectAll("rect.additions")
       .transition(settings.duration)
-      .delay((d, i) -> (i / Repo.formated_files.length * settings.duration))
+      .delay((file, i) -> (i / Repo.formated_files.length * settings.duration))
       .attr
-        width: (f, i) -> if f[3] is 0 then 0 else scale(f[3])*f[1]/f[3]
+        width: (file, i) -> if file.changes is 0 then 0 else scale(file.changes) * file.additions / file.changes
 
   find_index_of: (name, files_array) ->
     for file, i in files_array
-      if(name is file[0])
+      if(name is file.filename)
         return i
     return -1
 
   move_to_new_position: ->
     Repo.chart.selectAll("rect.deletions")
       .attr
-        visibility: (f) -> if Repo.find_index_of(f[0], Repo.prepared_files) is -1 then "hidden" else ""
+        visibility: (file) -> if Repo.find_index_of(file.filename, Repo.prepared_files) is -1 then "hidden" else ""
     Repo.chart.selectAll("rect.deletions")
       .transition(settings.duration)
       .attr
-        y: (f, i) -> Repo.find_index_of(f[0], Repo.prepared_files) * (settings.lineheight + settings.linespacing)
+        y: (file, i) -> Repo.find_index_of(file.filename, Repo.prepared_files) * (settings.lineheight + settings.linespacing)
 
 
     Repo.chart.selectAll("rect.additions")
       .attr
-        visibility: (f) -> if Repo.find_index_of(f[0], Repo.prepared_files) is -1 then "hidden" else ""
+        visibility: (file) -> if Repo.find_index_of(file.filename, Repo.prepared_files) is -1 then "hidden" else ""
     Repo.chart.selectAll("rect.additions")
       .transition(settings.duration)
       .attr
-        y: (f, i) -> Repo.find_index_of(f[0], Repo.prepared_files) * (settings.lineheight + settings.linespacing)
+        y: (f, i) -> Repo.find_index_of(f.filename, Repo.prepared_files) * (settings.lineheight + settings.linespacing)
 
     Repo.chart.selectAll("text.bar-label")
       .attr
-        visibility: (f) -> if Repo.find_index_of(f[0], Repo.prepared_files) is -1 then "hidden" else ""
+        visibility: (f) -> if Repo.find_index_of(f.filename, Repo.prepared_files) is -1 then "hidden" else ""
     Repo.chart.selectAll("text.bar-label")
       .transition(settings.duration)
       .attr
-        y: (f, i) -> Repo.find_index_of(f[0], Repo.prepared_files)* (settings.lineheight + settings.linespacing) + 17
+        y: (f, i) -> Repo.find_index_of(f.filename, Repo.prepared_files)* (settings.lineheight + settings.linespacing) + 17
 
     Repo.chart.selectAll("text.bar-name-label")
       .attr
-        visibility: (f) -> if Repo.find_index_of(f[0], Repo.prepared_files) is -1 then "hidden" else ""
+        visibility: (f) -> if Repo.find_index_of(f.filename, Repo.prepared_files) is -1 then "hidden" else ""
     Repo.chart.selectAll("text.bar-name-label")
       .transition(settings.duration)
       .attr
-        y: (f, i) -> Repo.find_index_of(f[0], Repo.prepared_files)* (settings.lineheight + settings.linespacing ) + 17
+        y: (f, i) -> Repo.find_index_of(f.filename, Repo.prepared_files)* (settings.lineheight + settings.linespacing ) + 17
 
   filter: (text, files) ->
-    (file for file in files when file[0].matches(text) and not _(Repo.excluded_files).contains(file))
+    (file for file in files when file.filename.matches(text) and not _(Repo.excluded_files).contains(file))
 
   correct_object: (f) ->
-    index = Repo.find_index_of(f[0], Repo.prepared_files)
+    index = Repo.find_index_of(f.filename, Repo.prepared_files)
     return Repo.prepared_files[index]
 
   display_with_filtered_commits: (filtered_commits) ->
     Repo.files = []
     for commit in filtered_commits
       for file in commit.files
-        name = file[0]
-        Repo.files[name]   or= [0, 0]
-        Repo.files[name][0] += file[1]
-        Repo.files[name][1] += file[2]
-    temp_files = ([name, fi[0], fi[1], fi[0]+fi[1]] for name, fi of Repo.files)
-    Repo.saved_files = temp_files
+        name = file.filename
+        Repo.files[name]   or= {additions: 0, deletions: 0}
+        Repo.files[name].additions += file.additions
+        Repo.files[name].deletions += file.deletions
+    Repo.saved_files = for name, file of Repo.files
+      {
+        filename:  name
+        additions: file.additions
+        deletions: file.deletions
+        changes:   file.deletions + file.additions
+      }
 
     Repo.display_with_filtered_commits_and_text_filter(f.val())
 
   get_scale: () ->
-    return d3.scale.pow().exponent(.5).domain([0.1, d3.max(Repo.prepared_files, (d)-> d[3] )]).range([0, settings.width - settings.offset - 2 * settings.padding])
-  
-  display_with_filtered_commits_and_text_filter: (text) ->
+    return d3.scale.pow().exponent(.5).domain([0.1, d3.max(Repo.prepared_files, (f)-> f.changes )]).range([0, settings.width - settings.offset - 2 * settings.padding])
 
-    
+  display_with_filtered_commits_and_text_filter: (text) ->
     Repo.prepared_files = Repo.filter(text, Repo.saved_files)
 
-    Repo.prepared_files = Repo.prepared_files.sort (a,b) -> (b[3] - a[3])
-    
+    Repo.prepared_files = Repo.prepared_files.sort (file1, file2) -> (file2.changes - file1.changes)
+
     Repo.move_to_new_position()
     scale = Repo.get_scale()
     Repo.chart.selectAll("text.bar-label")
-      .text (f) ->
-        file = Repo.correct_object(f)
+      .text (file) ->
+        file = Repo.correct_object(file)
         return "" if file is undefined
-        return file[3]
+        return file.changes
 
     Repo.chart.selectAll("rect.deletions")
       .transition(settings.duration)
-      .delay((d, i) -> (settings.duration))
+      .delay((f, i) -> (settings.duration))
       .attr
         x: (f, i) ->
           file = Repo.correct_object(f)
           return settings.offset if file is undefined
-          if file[3] is 0 then settings.offset else scale(file[3])*file[1]/file[3] + settings.offset
-        width: (f, i) ->
-          file = Repo.correct_object(f)
+          if file.changes is 0 then settings.offset else scale(file.changes) * file.additions / file.changes + settings.offset
+        width: (file, i) ->
+          file = Repo.correct_object(file)
           return 0 if file is undefined
-          if file[3] is 0 then 0 else scale(file[3])*file[2]/file[3]
+          if file.changes is 0 then 0 else scale(file.changes) * file.deletions / file.changes
 
     Repo.chart.selectAll("rect.additions")
       .transition(settings.duration)
-      .delay((d, i) -> (settings.duration))
+      .delay((file, i) -> (settings.duration))
       .attr
-        width: (f, i) ->
-          file = Repo.correct_object(f)
+        width: (file, i) ->
+          file = Repo.correct_object(file)
           return settings.offset if file is undefined
-          if file[3] is 0 then 0 else scale(file[3])*file[1]/file[3]
+          if file.changes is 0 then 0 else scale(file.changes) * file.additions / file.changes
 
     Repo.chart.attr
       height: Repo.prepared_files.length * (settings.lineheight + settings.linespacing)
@@ -417,12 +425,12 @@ $(window).resize ->
 
 f = $('#filter')
 
-filter = () ->
+filter = ->
   a = f.val()
   console.log "called input", a
   Repo.display_with_filtered_commits_and_text_filter(a)
   timeline_chart.recalculate()
   timeline_chart.render(Repo.commits, a)
 
-f.on("input",filter)
+f.on("input", filter)
 $(document).on 'click', '.additions', (e) -> console.log 'hi'
