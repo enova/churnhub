@@ -4,8 +4,9 @@ Number.prototype.clip     or= (min, max)  -> Math.min(max, Math.max(min, this))
 
 String.prototype.matches  or= (exp) ->
   matchObj = patternsToRegex _.groupBy(exp.trim().split(' '), commandType)
-  take = matchObj.bare is [] || _(matchObj.bare).some(makeMatch(this))
+  take = _(matchObj.bare).some(makeMatch(this))
   drop = !_(matchObj.except).some(makeMatch(this))
+  console.log "bare: " + matchObj.bare
   take and drop
 
 commandType = (command) ->
@@ -17,7 +18,7 @@ patternsToRegex = (obj) ->
       if obj.bare
         obj.bare.map toRegex
       else
-        []
+        [/.*/]
     except:
       if obj.except
         toRegex(pattern[1 ..]) for pattern in obj.except when pattern.length > 1
