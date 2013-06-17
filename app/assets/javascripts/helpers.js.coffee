@@ -3,11 +3,9 @@ Number.prototype.clip     or= (min, max)  -> Math.min(max, Math.max(min, this))
 
 
 String.prototype.matches  or= (exp) ->
-  matchObj = patternsToRegex _.groupBy(exp.split(' '), commandType)
-  take = _(matchObj.bare).some(makeMatch(@))
-  drop = !_(matchObj.except).some(makeMatch(@))
-  console.log take
-  console.log drop
+  matchObj = patternsToRegex _.groupBy(exp.trim().split(' '), commandType)
+  take = matchObj.bare is [] || _(matchObj.bare).some(makeMatch(this))
+  drop = !_(matchObj.except).some(makeMatch(this))
   take and drop
 
 commandType = (command) ->
@@ -19,13 +17,14 @@ patternsToRegex = (obj) ->
             obj.bare.map toRegex
           else
             []
-    except: if obj.except
-              obj.except.map((c) -> c[1..]).map toRegex
-            else
-              []
+    except:
+      if obj.except
+        toRegex(pattern[1 ..]) for pattern in obj.except when pattern.length > 1
+      else
+        []
 
 toRegex = (str) ->
-  new RegExp str.replace('.', '\.').replace('*', '[^ \\/:]*').replace(/[^\]]\*\*/, '.*').replace('?', '.')
+  new RegExp str.replace('.', '\\.').replace('*', '[^ \\/:]*').replace(/[^\]]\*\*/, '.*').replace('?', '.')
 
 makeMatch = (str) ->
   (pattern) ->
