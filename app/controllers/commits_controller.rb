@@ -10,10 +10,20 @@ class CommitsController < ApplicationController
       redirect_to '/signin' and return
     end
 
-    @repository.fetch_commits_from_github session[:access_token], params[:start], params[:finish]
-    @commits    = @repository.commits
+    respond_to do |format|
+      format.html do
 
-    respond_with @commits
+        respond_with @commits
+      end
+
+      format.json do
+        @repository.fetch_commits_from_github session[:access_token], params[:start], params[:finish]
+        @commits = @repository.commits
+        respond_with @commits
+      end
+    end
+
+
   end
 
   def show
