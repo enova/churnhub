@@ -10,6 +10,8 @@ class CommitsController < ApplicationController
       redirect_to '/signin' and return
     end
 
+    @repository.github = Churnhub::Github.new session[:access_token], @repository.url
+
     respond_to do |format|
       format.html do
 
@@ -17,7 +19,7 @@ class CommitsController < ApplicationController
       end
 
       format.json do
-        @repository.fetch_commits_from_github session[:access_token], params[:start], params[:finish]
+        @repository.fetch_commits_from_github params[:start], params[:finish]
         @commits = @repository.commits
         respond_with @commits
       end
@@ -28,7 +30,8 @@ class CommitsController < ApplicationController
 
   def show
     @commit = Commit.find params[:id]
-    @commit.fetch_files_from_github_if_incomplete! session[:access_token]
+    client = Churnhub::Github.new session[:access_token], @commit.repository.url
+    @commit.fetch_files_from_github_if_incomplete! client
     respond_with @commit
   end
 end

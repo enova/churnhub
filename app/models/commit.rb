@@ -21,10 +21,10 @@ class Commit < ActiveRecord::Base
     only: [:id, :sha, :timestamp]
   end
 
-  def fetch_files_from_github_if_incomplete! token
+  def fetch_files_from_github_if_incomplete! client
     return if self.timestamp
 
-    self.timestamp, committer_hash, files = repository.github(token).commit_by_sha(sha).values_at :timestamp, :committer, :files
+    self.timestamp, committer_hash, files = client.commit_by_sha(sha).values_at :timestamp, :committer, :files
 
     files.each do |file|
       record = file_infos.where(name: file[0]).first_or_create

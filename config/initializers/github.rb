@@ -1,7 +1,12 @@
+require_relative './github_url.rb'
+
 module Churnhub
   class Github
-    def initialize token, path, host='github.com'
-      @path = path
+    include Churnhub::Url
+    attr_reader :url
+
+    def initialize token, url
+      @url = url
 
       @client = Octokit::Client.new
       @client.per_page       = 100
