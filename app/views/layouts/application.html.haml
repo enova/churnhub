@@ -13,12 +13,14 @@
           - if request.path != '/'
             = form_tag '/repositories', method: :post, class: 'pure-form' do
               = text_field_tag 'repository[url]', '', class: 'pure-input pure-input-1', placeholder: "enter url of repo to churn here", autocomplete: 'off', tabindex: 1
-        - if session[:access_token]
+        - if current_user
           %li.current-user
             Hello,
-            != session[:user_name]
+            != current_user[:user_name]
             (
-            != link_to session[:user_login], session[:user_github_profile]
+            != link_to current_user[:user_github_profile] do
+              %img{src: current_user[:user_thumbnail], width: 20, height: 20}
+              != current_user[:user_login]
             )
           %li.log
             != link_to "logout", "/signout"
