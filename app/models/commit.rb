@@ -32,8 +32,7 @@ class Commit < ActiveRecord::Base
                                                                                  deletions: file[2]
     end
 
-    committer = Committer.new committer_hash
-    committer.save
+    committer = Committer.where(email: committer_hash[:email]).first_or_create committer_hash
     self.committer_id = committer.id
 
     save
