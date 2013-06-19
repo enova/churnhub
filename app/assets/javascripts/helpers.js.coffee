@@ -6,7 +6,6 @@ String.prototype.matches  or= (exp) ->
   matchObj = patternsToRegex _.groupBy(exp.trim().split(' '), commandType)
   take = _(matchObj.bare).some(makeMatch(this))
   drop = !_(matchObj.except).some(makeMatch(this))
-  console.log "bare: " + matchObj.bare
   take and drop
 
 commandType = (command) ->
