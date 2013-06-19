@@ -11,7 +11,7 @@ class Commit < ActiveRecord::Base
   def as_json options = {}
     super options.reverse_merge include: {
       committer: {
-        only: [:email, :name]
+        only: [:email, :name, :gravatar_url]
       },
       files: {
         methods: :filename,

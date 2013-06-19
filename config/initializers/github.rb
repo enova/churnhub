@@ -28,20 +28,36 @@ module Churnhub
     end
 
     def commit_by_sha sha
-      commit_json, files_json = @client.commit(@path, sha).values_at("commit", "files")
-      {       timestamp: commit_json.committer.date,
-              committer: { name: commit_json.committer.name,
-                          email: commit_json.committer.email
-                         },
+      commit_json, files_json, github_committer_json = @client.commit(@path, sha).values_at("commit", "files", "committer")
+      { timestamp: commit_json.committer.date,
+        committer: { name: commit_json.committer.name,
+                    email: commit_json.committer.email,
+             gravatar_url: 
+               begin
+                 "http://www.gravatar.com/avatar/#{github_committer_json.gravatar_id}"
+               rescue NoMethodError
+                 "http://placedog.it/80/80"
+               end
+                   },
         files: files_json.map do |f|
           f.values_at "filename", "additions", "deletions"
         end
       }
+
     end
 
     def self.user_details token
-      user = Octokit::Client.new(oauth_token: token).get('/user').slice "name", "login"
-      user.merge url: "https://github.com/#{user[:login]}"
+      response = Octokit::Client.new(oauth_token: token).get('/user').slice "name", "login", "gravatar_id"
+      { user_name: response.name,
+        user_login: response.login,
+        user_github_profile: "https://github.com/#{response.login}",
+        user_thumbnail:
+          if response.gravatar_id
+            "http://www.gravatar.com/avatar/#{response.gravatar_id}"
+          else
+            "http://placedog.it/80/80"
+          end
+      }
     end
   end
 end
