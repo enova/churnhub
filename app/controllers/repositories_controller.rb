@@ -3,7 +3,9 @@ class RepositoriesController < ApplicationController
 
   def index
     @repository   = Repository.new
-    @repositories = Repository.all
+    @repositories = viewed_repositories.map do |id|
+      Repository.find id
+    end
   end
 
   def create

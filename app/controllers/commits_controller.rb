@@ -8,6 +8,8 @@ class CommitsController < ApplicationController
       redirect_to '/signin' and return
     end
 
+    record_repository_as_viewed @repository
+
     @repository.github = Churnhub::Github.new session[:access_token], @repository.url
 
     respond_to do |format|
