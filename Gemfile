@@ -4,7 +4,6 @@ gem 'github-oauth'
 gem 'octokit'
 gem 'jquery-rails'
 gem 'rails', '3.2.13'
-gem 'sqlite3'
 
 group :assets do
   gem 'sass-rails',   '~> 3.2.3'
@@ -16,6 +15,7 @@ end
 group :development do
   gem 'pry-rails'
   gem 'pry-remote'
+  gem 'sqlite3'
 end
 
 group :test do
@@ -24,4 +24,8 @@ group :test do
   gem 'webmock'
   gem 'guard-rspec'
   gem 'terminal-notifier-guard'
+end
+
+group :production do
+  gem 'pg'
 end
