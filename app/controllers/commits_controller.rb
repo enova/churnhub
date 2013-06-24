@@ -3,8 +3,6 @@ class CommitsController < ApplicationController
   respond_to :json, :html
 
   def index
-    params.reverse_merge! start: 1.year.ago, finish: Date.today
-
     @repository = Repository.with_url params[:url]
     if !session[:access_token] && (@repository.host == 'github.com')
       redirect_to '/signin' and return
@@ -19,7 +17,7 @@ class CommitsController < ApplicationController
       end
 
       format.json do
-        @repository.fetch_commits_from_github params[:start], params[:finish]
+        @repository.fetch_commits_from_github
         @commits = @repository.commits
         respond_with @commits
       end

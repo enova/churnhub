@@ -4,7 +4,7 @@ class Repository < ActiveRecord::Base
   validates       :url, presence: true, uniqueness: true
   attr_reader     :github
 
-  def fetch_commits_from_github start=3.months.ago, finish=Date.today
+  def fetch_commits_from_github start=1.year.ago, finish=Date.today
     github.shas(start, finish).each do |sha|
       commits.where(sha: sha).first_or_create sha: sha,
                                         timestamp: nil
