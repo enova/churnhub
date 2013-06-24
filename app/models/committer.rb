@@ -5,7 +5,4 @@ class Committer < ActiveRecord::Base
   def as_json options = {}
     super options.reverse_merge include: :commits
   end
-
-  def fetch_user_info_from_github_if_incomplete! client
-  end
 end
