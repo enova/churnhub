@@ -13,13 +13,6 @@
 
 ActiveRecord::Schema.define(:version => 20130619151354) do
 
-  create_table "branches", :force => true do |t|
-    t.string   "name"
-    t.datetime "created_at",    :null => false
-    t.datetime "updated_at",    :null => false
-    t.integer  "repository_id"
-  end
-
   create_table "commit_files", :force => true do |t|
     t.integer  "file_info_id"
     t.integer  "commit_id"
