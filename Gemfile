@@ -2,14 +2,14 @@ source 'https://rubygems.org'
 
 gem 'github-oauth'
 gem 'octokit'
-gem 'jquery-rails'
-gem 'rails', '3.2.13'
-gem 'haml'
+gem 'jquery-rails', '>= 4.4.0'
+gem 'rails', '6.1.7.3'
+gem 'haml', '>= 5.0.0'
 
 group :assets do
-  gem 'sass-rails',   '~> 3.2.3'
-  gem 'coffee-rails', '~> 3.2.1'
-  gem 'uglifier', '>= 1.0.3'
+  gem 'sass-rails', '~> 5.0.8'
+  gem 'coffee-rails', '~> 4.2.2'
+  gem 'uglifier', '>= 2.7.2'
 end
 
 group :development do
